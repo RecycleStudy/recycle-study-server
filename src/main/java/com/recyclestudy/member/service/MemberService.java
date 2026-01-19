@@ -2,7 +2,6 @@ package com.recyclestudy.member.service;
 
 import com.recyclestudy.exception.BadRequestException;
 import com.recyclestudy.exception.NotFoundException;
-import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.ActivationExpiredDateTime;
 import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
@@ -50,9 +49,6 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public MemberFindOutput findAllMemberDevices(final MemberFindInput input) {
-        checkExistedMember(input.email());
-        checkActiveDevice(input.deviceIdentifier());
-
         final List<Device> devices = deviceRepository.findAllByMemberEmail(input.email());
         return MemberFindOutput.of(input.email(), devices);
     }
@@ -76,10 +72,6 @@ public class MemberService {
 
     @Transactional
     public void deleteDevice(final DeviceDeleteInput input) {
-        final Device device = deviceRepository.findByIdentifier(input.deviceIdentifier())
-                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스 아이디입니다: %s"
-                        .formatted(input.deviceIdentifier().getValue())));
-        device.verifyOwner(input.email());
         deviceRepository.deleteByIdentifier(input.targetDeviceIdentifier());
         log.info("[DEVICE_DELETED] 디바이스 삭제 성공: {}", input.targetDeviceIdentifier());
     }
@@ -101,16 +93,6 @@ public class MemberService {
     private void checkExistedMember(final Email email) {
         if (!memberRepository.existsByEmail(email)) {
             throw new NotFoundException("존재하지 않는 멤버입니다: %s".formatted(email.getValue()));
-        }
-    }
-
-    private void checkActiveDevice(final DeviceIdentifier deviceIdentifier) {
-        final Device device = deviceRepository.findByIdentifier(deviceIdentifier)
-                .orElseThrow(() -> new NotFoundException("존재하지 않는 디바이스 아이디입니다: %s"
-                        .formatted(deviceIdentifier.getValue())));
-
-        if (!device.isActive()) {
-            throw new UnauthorizedException("인증되지 않은 디바이스입니다");
         }
     }
 }

@@ -2,8 +2,9 @@ package com.recyclestudy.review.service;
 
 import com.recyclestudy.common.BaseEntity;
 import com.recyclestudy.exception.UnauthorizedException;
-import com.recyclestudy.member.domain.Device;
+import com.recyclestudy.member.domain.Member;
 import com.recyclestudy.member.repository.DeviceRepository;
+import com.recyclestudy.member.repository.MemberRepository;
 import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.Review;
@@ -31,16 +32,16 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final ReviewCycleRepository reviewCycleRepository;
     private final DeviceRepository deviceRepository;
+    private final MemberRepository memberRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final Clock clock;
 
     @Transactional
     public ReviewSaveOutput saveReview(final ReviewSaveInput input) {
-        final Device device = deviceRepository.findByIdentifier(input.identifier())
+        final Member member = memberRepository.findByIdentifier(input.identifier())
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
-        checkValidDevice(device);
 
-        final Review review = Review.withoutId(device.getMember(), input.url());
+        final Review review = Review.withoutId(member, input.url());
         final Review savedReview = reviewRepository.save(review);
         log.info("[REVIEW_SAVED] 복습 주제 저장 성공: reviewId={}", savedReview.getId());
 
@@ -61,12 +62,6 @@ public class ReviewService {
         savePendingNotificationHistory(savedReviewCycles);
 
         return ReviewSaveOutput.of(savedReview.getUrl(), savedScheduledAts);
-    }
-
-    private void checkValidDevice(final Device device) {
-        if (!device.isActive()) {
-            throw new UnauthorizedException("인증되지 않은 디바이스입니다");
-        }
     }
 
     private void savePendingNotificationHistory(final List<ReviewCycle> savedReviewCycles) {

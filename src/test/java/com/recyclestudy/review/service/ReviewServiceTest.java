@@ -1,12 +1,10 @@
 package com.recyclestudy.review.service;
 
 import com.recyclestudy.exception.UnauthorizedException;
-import com.recyclestudy.member.domain.ActivationExpiredDateTime;
-import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
-import com.recyclestudy.member.repository.DeviceRepository;
+import com.recyclestudy.member.repository.MemberRepository;
 import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.Review;
@@ -50,7 +48,7 @@ class ReviewServiceTest {
     ReviewCycleRepository reviewCycleRepository;
 
     @Mock
-    DeviceRepository deviceRepository;
+    MemberRepository memberRepository;
 
     @Mock
     NotificationHistoryRepository notificationHistoryRepository;
@@ -72,23 +70,16 @@ class ReviewServiceTest {
     @DisplayName("리뷰와 리뷰 주기를 저장한다")
     void saveReview() {
         // given
-        final String identifier = "device-id";
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final String urlValue = "https://test.com";
         final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue);
-
-        final Device device = Device.withoutId(
-                Member.withoutId(Email.from("test@test.com")),
-                DeviceIdentifier.from(identifier),
-                true,
-                ActivationExpiredDateTime.create(now)
-        );
 
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
         final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
 
-        given(deviceRepository.findByIdentifier(any())).willReturn(Optional.of(device));
+        given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
         given(reviewRepository.save(any(Review.class))).willReturn(review);
         given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
 
@@ -105,7 +96,7 @@ class ReviewServiceTest {
             softAssertions.assertThat(captor.getValue()).allMatch(h -> h.getStatus() == NotificationStatus.PENDING);
         });
 
-        verify(deviceRepository).findByIdentifier(any());
+        verify(memberRepository).findByIdentifier(any(DeviceIdentifier.class));
         verify(reviewRepository).save(any(Review.class));
         verify(reviewCycleRepository).saveAll(anyList());
     }
@@ -114,36 +105,13 @@ class ReviewServiceTest {
     @DisplayName("존재하지 않는 디바이스 아이디일 경우 예외를 던진다")
     void saveReview_fail_notFoundDevice() {
         // given
-        final ReviewSaveInput input = ReviewSaveInput.of("not-found", "https://test.com");
-        given(deviceRepository.findByIdentifier(any())).willReturn(Optional.empty());
+        final ReviewSaveInput input = ReviewSaveInput.of(DeviceIdentifier.from("not-found"), "https://test.com");
+        given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.empty());
 
         // when
         // then
         assertThatThrownBy(() -> reviewService.saveReview(input))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("유효하지 않은 디바이스입니다");
-    }
-
-    @Test
-    @DisplayName("활성화되지 않은 디바이스일 경우 예외를 던진다")
-    void saveReview_fail_inactiveDevice() {
-        // given
-        final String identifier = "inactive-device";
-        final ReviewSaveInput input = ReviewSaveInput.of(identifier, "https://test.com");
-
-        final Device inactiveDevice = Device.withoutId(
-                Member.withoutId(Email.from("test@test.com")),
-                DeviceIdentifier.from(identifier),
-                false,
-                ActivationExpiredDateTime.create(now)
-        );
-
-        given(deviceRepository.findByIdentifier(any())).willReturn(Optional.of(inactiveDevice));
-
-        // when
-        // then
-        assertThatThrownBy(() -> reviewService.saveReview(input))
-                .isInstanceOf(UnauthorizedException.class)
-                .hasMessage("인증되지 않은 디바이스입니다");
     }
 }

@@ -3,17 +3,24 @@ package com.recyclestudy.member.controller;
 import com.recyclestudy.exception.BadRequestException;
 import com.recyclestudy.exception.DeviceActivationExpiredException;
 import com.recyclestudy.exception.NotFoundException;
-import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.controller.request.DeviceDeleteRequest;
+import com.recyclestudy.member.domain.ActivationExpiredDateTime;
+import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
+import com.recyclestudy.member.domain.Member;
+import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.service.MemberService;
 import com.recyclestudy.restdocs.APIBaseTest;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -24,6 +31,7 @@ import static com.epages.restdocs.apispec.Schema.schema;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -35,6 +43,19 @@ class DeviceControllerTest extends APIBaseTest {
 
     @MockitoBean
     private MemberService memberService;
+
+    @MockitoBean
+    private DeviceRepository deviceRepository;
+
+    @BeforeEach
+    void setUpMocks(RestDocumentationContextProvider provider) {
+        super.setUpRestDocs(provider);
+        // Default mock: device exists and is active
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Device activeDevice = Device.withoutId(member, DeviceIdentifier.from("device-id"),
+                true, ActivationExpiredDateTime.create(LocalDateTime.now()));
+        given(deviceRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(activeDevice));
+    }
 
     @Test
     @DisplayName("디바이스 인증 성공 시 200 응답을 반환한다")
@@ -186,7 +207,8 @@ class DeviceControllerTest extends APIBaseTest {
     @DisplayName("디바이스 삭제 시 204 응답을 반환한다")
     void deleteDevice() {
         // given
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", "device-id", "target-id");
+        final String headerIdentifier = "device-id";
+        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", "target-id");
 
         doNothing().when(memberService).deleteDevice(any());
 
@@ -198,91 +220,22 @@ class DeviceControllerTest extends APIBaseTest {
                                 .tag("Device")
                                 .summary("디바이스 삭제")
                                 .description("디바이스 삭제 시 204 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .requestFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING).description("디바이스 식별자"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
+                                        fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", headerIdentifier)
                 .body(request)
                 .when()
                 .delete("/api/v1/device")
                 .then()
                 .statusCode(HttpStatus.NO_CONTENT.value());
-    }
-
-    @Test
-    @DisplayName("유효하지 않은 디바이스 아이디로 삭제 시 401 응답을 반환한다")
-    void deleteDevice_InvalidIdentifier() {
-        // given
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", "not-existed", "target-id");
-
-        doThrow(new UnauthorizedException("유효하지 않은 디바이스 아이디입니다"))
-                .when(memberService).deleteDevice(any());
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Device")
-                                .summary("디바이스 삭제")
-                                .description("유효하지 않은 디바이스 아이디로 삭제 시 401 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING).description("디바이스 식별자"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
-                                                .description("삭제할 디바이스 식별자")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .delete("/api/v1/device")
-                .then()
-                .statusCode(HttpStatus.UNAUTHORIZED.value())
-                .body("message", equalTo("유효하지 않은 디바이스 아이디입니다"));
-    }
-
-    @Test
-    @DisplayName("소유자가 아닌 디바이스 삭제 시 400 응답을 반환한다")
-    void deleteDevice_NotOwner() {
-        // given
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("other@test.com", "device-id", "target-id");
-
-        doThrow(new BadRequestException("디바이스 소유자가 아닙니다."))
-                .when(memberService).deleteDevice(any());
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Device")
-                                .summary("디바이스 삭제")
-                                .description("소유자가 아닌 디바이스 삭제 시 400 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING).description("디바이스 식별자"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
-                                                .description("삭제할 디바이스 식별자")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .delete("/api/v1/device")
-                .then()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .body("message", equalTo("디바이스 소유자가 아닙니다."));
     }
 
     @Test
@@ -451,7 +404,8 @@ class DeviceControllerTest extends APIBaseTest {
     @DisplayName("삭제 요청 시 이메일이 누락된 경우 400 응답을 반환한다")
     void deleteDevice_NullEmail() {
         // given
-        final DeviceDeleteRequest request = new DeviceDeleteRequest(null, "device-id", "target-id");
+        final String headerIdentifier = "device-id";
+        final DeviceDeleteRequest request = new DeviceDeleteRequest(null, "target-id");
 
         // when
         // then
@@ -461,10 +415,12 @@ class DeviceControllerTest extends APIBaseTest {
                                 .tag("Device")
                                 .summary("디바이스 삭제")
                                 .description("삭제 요청 시 이메일이 누락된 경우 400 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .requestFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING).description("디바이스 식별자"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
+                                        fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
                                 )
                                 .responseFields(
@@ -472,39 +428,7 @@ class DeviceControllerTest extends APIBaseTest {
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .delete("/api/v1/device")
-                .then()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .body("message", equalTo("null이 될 수 없습니다: value"));
-    }
-
-    @Test
-    @DisplayName("삭제 요청 시 디바이스 식별자가 누락된 경우 400 응답을 반환한다")
-    void deleteDevice_NullIdentifier() {
-        // given
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", null, "target-id");
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Device")
-                                .summary("디바이스 삭제")
-                                .description("삭제 요청 시 디바이스 식별자가 누락된 경우 400 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING).description("디바이스 식별자"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
-                                                .description("삭제할 디바이스 식별자")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", headerIdentifier)
                 .body(request)
                 .when()
                 .delete("/api/v1/device")
@@ -517,7 +441,8 @@ class DeviceControllerTest extends APIBaseTest {
     @DisplayName("삭제 요청 시 삭제할 디바이스 식별자가 누락된 경우 400 응답을 반환한다")
     void deleteDevice_NullTargetIdentifier() {
         // given
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", "device-id", null);
+        final String headerIdentifier = "device-id";
+        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", null);
 
         // when
         // then
@@ -527,51 +452,16 @@ class DeviceControllerTest extends APIBaseTest {
                                 .tag("Device")
                                 .summary("디바이스 삭제")
                                 .description("삭제 요청 시 삭제할 디바이스 식별자가 누락된 경우 400 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING).description("디바이스 식별자"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
-                                                .description("삭제할 디바이스 식별자")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .delete("/api/v1/device")
-                .then()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .body("message", equalTo("null이 될 수 없습니다: value"));
-    }
-
-    @Test
-    @DisplayName("헤더로 디바이스 인증하여 삭제 시 204 응답을 반환한다")
-    void deleteDevice_WithHeader() {
-        // given
-        final String headerIdentifier = "device-id";
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", null, "target-id");
-
-        doNothing().when(memberService).deleteDevice(any());
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Device")
-                                .summary("디바이스 삭제")
-                                .description("헤더로 디바이스 인증하여 삭제 시 204 응답을 반환한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional(),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
+                                        fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -580,6 +470,7 @@ class DeviceControllerTest extends APIBaseTest {
                 .when()
                 .delete("/api/v1/device")
                 .then()
-                .statusCode(HttpStatus.NO_CONTENT.value());
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .body("message", equalTo("null이 될 수 없습니다: value"));
     }
 }

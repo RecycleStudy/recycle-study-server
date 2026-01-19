@@ -4,18 +4,25 @@ import com.recyclestudy.email.DeviceAuthEmailSender;
 import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.controller.request.MemberSaveRequest;
+import com.recyclestudy.member.domain.ActivationExpiredDateTime;
+import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
+import com.recyclestudy.member.domain.Member;
+import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.service.MemberService;
 import com.recyclestudy.member.service.output.MemberFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import com.recyclestudy.restdocs.APIBaseTest;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -39,6 +46,19 @@ class MemberControllerTest extends APIBaseTest {
 
     @MockitoBean
     private DeviceAuthEmailSender deviceAuthEmailSender;
+
+    @MockitoBean
+    private DeviceRepository deviceRepository;
+
+    @BeforeEach
+    void setUpMocks(RestDocumentationContextProvider provider) {
+        super.setUpRestDocs(provider);
+        // Default mock: device exists and is active
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Device activeDevice = Device.withoutId(member, DeviceIdentifier.from("device-id-1"),
+                true, ActivationExpiredDateTime.create(LocalDateTime.now()));
+        given(deviceRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(activeDevice));
+    }
 
     @Test
     @DisplayName("이메일을 통해 새로운 디바이스를 저장한다")
@@ -84,10 +104,10 @@ class MemberControllerTest extends APIBaseTest {
     void findAllMemberDevices() {
         // given
         final String email = "test@test.com";
-        final String queryIdentifier = "device-id-1";
+        final String headerIdentifier = "device-id-1";
 
         final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
-                DeviceIdentifier.from(queryIdentifier),
+                DeviceIdentifier.from(headerIdentifier),
                 LocalDateTime.now().minusDays(1)
         );
         final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
@@ -110,9 +130,11 @@ class MemberControllerTest extends APIBaseTest {
                                 .tag("Member")
                                 .summary("멤버 디바이스 조회")
                                 .description("멤버의 모든 디바이스 정보를 조회한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자")
+                                        parameterWithName("email").description("이메일")
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
@@ -123,12 +145,11 @@ class MemberControllerTest extends APIBaseTest {
                                                 .description("디바이스 생성일")
                                 ),
                         queryParameters(
-                                parameterWithName("email").description("이메일"),
-                                parameterWithName("identifier").description("디바이스 식별자")
+                                parameterWithName("email").description("이메일")
                         )
                 ))
+                .header("X-Device-Id", headerIdentifier)
                 .param("email", email)
-                .param("identifier", queryIdentifier)
                 .when()
                 .get("/api/v1/members")
                 .then()
@@ -141,7 +162,7 @@ class MemberControllerTest extends APIBaseTest {
     void findAllMemberDevices_NotFoundMember() {
         // given
         final String email = "notfound@test.com";
-        final String identifier = "device-identifier";
+        final String headerIdentifier = "device-identifier";
 
         given(memberService.findAllMemberDevices(any()))
                 .willThrow(new NotFoundException("존재하지 않는 멤버입니다"));
@@ -154,20 +175,21 @@ class MemberControllerTest extends APIBaseTest {
                                 .tag("Member")
                                 .summary("멤버 디바이스 조회")
                                 .description("존재하지 않는 멤버 조회 시 404 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자")
+                                        parameterWithName("email").description("이메일")
                                 )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
                                 ),
                         queryParameters(
-                                parameterWithName("email").description("이메일"),
-                                parameterWithName("identifier").description("디바이스 식별자")
+                                parameterWithName("email").description("이메일")
                         )
                 ))
+                .header("X-Device-Id", headerIdentifier)
                 .param("email", email)
-                .param("identifier", identifier)
                 .when()
                 .get("/api/v1/members")
                 .then()
@@ -180,7 +202,7 @@ class MemberControllerTest extends APIBaseTest {
     void findAllMemberDevices_UnauthorizedDevice() {
         // given
         final String email = "test@test.com";
-        final String identifier = "unauthorized-id";
+        final String headerIdentifier = "unauthorized-id";
 
         given(memberService.findAllMemberDevices(any()))
                 .willThrow(new UnauthorizedException("인증되지 않은 디바이스입니다"));
@@ -193,20 +215,21 @@ class MemberControllerTest extends APIBaseTest {
                                 .tag("Member")
                                 .summary("멤버 디바이스 조회")
                                 .description("인증되지 않은 디바이스로 조회 시 401 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자")
+                                        parameterWithName("email").description("이메일")
                                 )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
                                 ),
                         queryParameters(
-                                parameterWithName("email").description("이메일"),
-                                parameterWithName("identifier").description("디바이스 식별자")
+                                parameterWithName("email").description("이메일")
                         )
                 ))
+                .header("X-Device-Id", headerIdentifier)
                 .param("email", email)
-                .param("identifier", identifier)
                 .when()
                 .get("/api/v1/members")
                 .then()
@@ -219,7 +242,7 @@ class MemberControllerTest extends APIBaseTest {
     void findAllMemberDevices_InvalidEmailFormat() {
         // given
         final String invalidEmail = "invalid-email";
-        final String identifier = "device-identifier";
+        final String headerIdentifier = "device-identifier";
 
         // when
         // then
@@ -229,20 +252,21 @@ class MemberControllerTest extends APIBaseTest {
                                 .tag("Member")
                                 .summary("멤버 디바이스 조회")
                                 .description("조회 시 유효하지 않은 이메일 형식인 경우 400 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자")
+                                        parameterWithName("email").description("이메일")
                                 )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
                                 ),
                         queryParameters(
-                                parameterWithName("email").description("이메일"),
-                                parameterWithName("identifier").description("디바이스 식별자")
+                                parameterWithName("email").description("이메일")
                         )
                 ))
+                .header("X-Device-Id", headerIdentifier)
                 .param("email", invalidEmail)
-                .param("identifier", identifier)
                 .when()
                 .get("/api/v1/members")
                 .then()
@@ -316,7 +340,7 @@ class MemberControllerTest extends APIBaseTest {
     void findAllMemberDevices_NotFoundDevice() {
         // given
         final String email = "test@test.com";
-        final String identifier = "not-found-id";
+        final String headerIdentifier = "not-found-id";
 
         given(memberService.findAllMemberDevices(any()))
                 .willThrow(new NotFoundException("존재하지 않는 디바이스 아이디입니다"));
@@ -329,20 +353,21 @@ class MemberControllerTest extends APIBaseTest {
                                 .tag("Member")
                                 .summary("멤버 디바이스 조회")
                                 .description("존재하지 않는 디바이스 식별자로 조회 시 404 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
                                 .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자")
+                                        parameterWithName("email").description("이메일")
                                 )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
                                 ),
                         queryParameters(
-                                parameterWithName("email").description("이메일"),
-                                parameterWithName("identifier").description("디바이스 식별자")
+                                parameterWithName("email").description("이메일")
                         )
                 ))
+                .header("X-Device-Id", headerIdentifier)
                 .param("email", email)
-                .param("identifier", identifier)
                 .when()
                 .get("/api/v1/members")
                 .then()
@@ -354,7 +379,7 @@ class MemberControllerTest extends APIBaseTest {
     @DisplayName("이메일 파라미터가 누락된 경우 400 응답을 반환한다")
     void findAllMemberDevices_NullEmail() {
         // given
-        final String identifier = "device-identifier";
+        final String headerIdentifier = "device-identifier";
 
         // when
         // then
@@ -364,110 +389,17 @@ class MemberControllerTest extends APIBaseTest {
                                 .tag("Member")
                                 .summary("멤버 디바이스 조회")
                                 .description("이메일 파라미터가 누락된 경우 400 응답을 반환한다")
-                                .queryParameters(
-                                        parameterWithName("identifier").description("디바이스 식별자")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                ),
-                        queryParameters(
-                                parameterWithName("identifier").description("디바이스 식별자")
-                        )
-                ))
-                .param("identifier", identifier)
-                .when()
-                .get("/api/v1/members")
-                .then()
-                .statusCode(HttpStatus.BAD_REQUEST.value());
-    }
-
-    @Test
-    @DisplayName("디바이스 식별자 파라미터가 누락된 경우 400 응답을 반환한다")
-    void findAllMemberDevices_NullIdentifier() {
-        // given
-        final String email = "test@test.com";
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Member")
-                                .summary("멤버 디바이스 조회")
-                                .description("디바이스 식별자 파라미터가 누락된 경우 400 응답을 반환한다")
-                                .queryParameters(
-                                        parameterWithName("email").description("이메일")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                ),
-                        queryParameters(
-                                parameterWithName("email").description("이메일")
-                        )
-                ))
-                .param("email", email)
-                .when()
-                .get("/api/v1/members")
-                .then()
-                .statusCode(HttpStatus.BAD_REQUEST.value());
-    }
-
-    @Test
-    @DisplayName("헤더로 디바이스 인증하여 멤버의 모든 디바이스 정보를 조회한다")
-    void findAllMemberDevices_WithHeader() {
-        // given
-        final String email = "test@test.com";
-        final String headerIdentifier = "device-id-1";
-
-        final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
-                DeviceIdentifier.from(headerIdentifier),
-                LocalDateTime.now().minusDays(1)
-        );
-        final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
-                DeviceIdentifier.from("device-id-2"),
-                LocalDateTime.now()
-        );
-
-        final MemberFindOutput output = new MemberFindOutput(
-                Email.from(email),
-                List.of(device1, device2)
-        );
-
-        given(memberService.findAllMemberDevices(any())).willReturn(output);
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Member")
-                                .summary("멤버 디바이스 조회")
-                                .description("헤더로 디바이스 인증하여 멤버의 모든 디바이스 정보를 조회한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
-                                .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional()
-                                )
                                 .responseFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("devices").type(JsonFieldType.ARRAY).description("디바이스 목록"),
-                                        fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자 값"),
-                                        fieldWithPath("devices[].createdAt").type(JsonFieldType.STRING)
-                                                .description("디바이스 생성일")
-                                ),
-                        queryParameters(
-                                parameterWithName("email").description("이메일")
-                        )
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
+                                )
                 ))
                 .header("X-Device-Id", headerIdentifier)
-                .param("email", email)
                 .when()
                 .get("/api/v1/members")
                 .then()
-                .statusCode(HttpStatus.OK.value())
-                .body("devices", hasSize(2));
+                .statusCode(HttpStatus.BAD_REQUEST.value());
     }
 }
