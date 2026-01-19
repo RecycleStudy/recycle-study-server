@@ -1,4 +1,4 @@
 package com.recyclestudy.member.controller.request;
 
-public record DeviceDeleteRequest(String email, String deviceIdentifier, String targetDeviceIdentifier) {
+public record DeviceDeleteRequest(String email, String targetDeviceIdentifier) {
 }

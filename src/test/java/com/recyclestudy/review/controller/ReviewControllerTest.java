@@ -1,6 +1,12 @@
 package com.recyclestudy.review.controller;
 
 import com.recyclestudy.exception.UnauthorizedException;
+import com.recyclestudy.member.domain.ActivationExpiredDateTime;
+import com.recyclestudy.member.domain.Device;
+import com.recyclestudy.member.domain.DeviceIdentifier;
+import com.recyclestudy.member.domain.Email;
+import com.recyclestudy.member.domain.Member;
+import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.restdocs.APIBaseTest;
 import com.recyclestudy.review.controller.request.ReviewSaveRequest;
 import com.recyclestudy.review.domain.ReviewURL;
@@ -8,10 +14,13 @@ import com.recyclestudy.review.service.ReviewService;
 import com.recyclestudy.review.service.output.ReviewSaveOutput;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -29,13 +38,26 @@ class ReviewControllerTest extends APIBaseTest {
     @MockitoBean
     private ReviewService reviewService;
 
+    @MockitoBean
+    private DeviceRepository deviceRepository;
+
+    @BeforeEach
+    void setUpMocks(RestDocumentationContextProvider provider) {
+        super.setUpRestDocs(provider);
+        // Default mock: device exists and is active
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Device activeDevice = Device.withoutId(member, DeviceIdentifier.from("device-id"),
+                true, ActivationExpiredDateTime.create(LocalDateTime.now()));
+        given(deviceRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(activeDevice));
+    }
+
     @Test
     @DisplayName("리뷰를 저장하면 201 응답을 반환한다")
     void saveReview() {
         // given
         final String identifier = "device-id";
         final String url = "https://test.com";
-        final ReviewSaveRequest request = new ReviewSaveRequest(identifier, url);
+        final ReviewSaveRequest request = new ReviewSaveRequest(url);
         final ReviewSaveOutput output = ReviewSaveOutput.of(ReviewURL.from(url), List.of(LocalDateTime.now()));
 
         given(reviewService.saveReview(any())).willReturn(output);
@@ -48,125 +70,11 @@ class ReviewControllerTest extends APIBaseTest {
                                 .tag("Review")
                                 .summary("리뷰 저장")
                                 .description("리뷰를 저장하면 201 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자"),
-                                        fieldWithPath("url").type(JsonFieldType.STRING)
-                                                .description("리뷰할 URL")
-                                )
-                                .responseFields(
-                                        fieldWithPath("url").type(JsonFieldType.STRING).description("리뷰할 URL"),
-                                        fieldWithPath("scheduledAts").type(JsonFieldType.ARRAY)
-                                                .description("복습 예정 일시 목록")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .post("/api/v1/reviews")
-                .then()
-                .statusCode(HttpStatus.CREATED.value())
-                .body("url", equalTo(url));
-    }
-
-    @Test
-    @DisplayName("유효하지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
-    void saveReview_Unauthorized() {
-        // given
-        final ReviewSaveRequest request = new ReviewSaveRequest("invalid-id", "https://test.com");
-
-        given(reviewService.saveReview(any()))
-                .willThrow(new UnauthorizedException("유효하지 않은 디바이스입니다"));
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Review")
-                                .summary("리뷰 저장")
-                                .description("유효하지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자"),
-                                        fieldWithPath("url").type(JsonFieldType.STRING)
-                                                .description("리뷰할 URL")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .post("/api/v1/reviews")
-                .then()
-                .statusCode(HttpStatus.UNAUTHORIZED.value())
-                .body("message", equalTo("유효하지 않은 디바이스입니다"));
-    }
-
-    @Test
-    @DisplayName("인증되지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
-    void saveReview_InactiveDevice() {
-        // given
-        final ReviewSaveRequest request = new ReviewSaveRequest("inactive-id", "https://test.com");
-
-        given(reviewService.saveReview(any()))
-                .willThrow(new UnauthorizedException("인증되지 않은 디바이스입니다"));
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Review")
-                                .summary("리뷰 저장")
-                                .description("인증되지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
-                                .requestFields(
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자"),
-                                        fieldWithPath("url").type(JsonFieldType.STRING)
-                                                .description("리뷰할 URL")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                )
-                ))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .body(request)
-                .when()
-                .post("/api/v1/reviews")
-                .then()
-                .statusCode(HttpStatus.UNAUTHORIZED.value())
-                .body("message", equalTo("인증되지 않은 디바이스입니다"));
-    }
-
-    @Test
-    @DisplayName("헤더로 디바이스 인증하여 리뷰를 저장하면 201 응답을 반환한다")
-    void saveReview_WithHeader() {
-        // given
-        final String identifier = "device-id";
-        final String url = "https://test.com";
-        final ReviewSaveRequest request = new ReviewSaveRequest(null, url);
-        final ReviewSaveOutput output = ReviewSaveOutput.of(ReviewURL.from(url), List.of(LocalDateTime.now()));
-
-        given(reviewService.saveReview(any())).willReturn(output);
-
-        // when
-        // then
-        given(this.spec)
-                .filter(document(DEFAULT_REST_DOC_PATH,
-                        builder()
-                                .tag("Review")
-                                .summary("리뷰 저장")
-                                .description("헤더로 디바이스 인증하여 리뷰를 저장하면 201 응답을 반환한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional(),
-                                        fieldWithPath("url").type(JsonFieldType.STRING)
+                                        fieldWithPath("targetUrl").type(JsonFieldType.STRING)
                                                 .description("리뷰할 URL")
                                 )
                                 .responseFields(
@@ -183,5 +91,83 @@ class ReviewControllerTest extends APIBaseTest {
                 .then()
                 .statusCode(HttpStatus.CREATED.value())
                 .body("url", equalTo(url));
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
+    void saveReview_Unauthorized() {
+        // given
+        final String identifier = "invalid-id";
+        final ReviewSaveRequest request = new ReviewSaveRequest("https://test.com");
+
+        given(reviewService.saveReview(any()))
+                .willThrow(new UnauthorizedException("유효하지 않은 디바이스입니다"));
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("리뷰 저장")
+                                .description("유효하지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("targetUrl").type(JsonFieldType.STRING)
+                                                .description("리뷰할 URL")
+                                )
+                                .responseFields(
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
+                                )
+                ))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", identifier)
+                .body(request)
+                .when()
+                .post("/api/v1/reviews")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("message", equalTo("유효하지 않은 디바이스입니다"));
+    }
+
+    @Test
+    @DisplayName("인증되지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
+    void saveReview_InactiveDevice() {
+        // given
+        final String identifier = "inactive-id";
+        final ReviewSaveRequest request = new ReviewSaveRequest("https://test.com");
+
+        given(reviewService.saveReview(any()))
+                .willThrow(new UnauthorizedException("인증되지 않은 디바이스입니다"));
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("리뷰 저장")
+                                .description("인증되지 않은 디바이스로 리뷰 저장 시 401 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("targetUrl").type(JsonFieldType.STRING)
+                                                .description("리뷰할 URL")
+                                )
+                                .responseFields(
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
+                                )
+                ))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", identifier)
+                .body(request)
+                .when()
+                .post("/api/v1/reviews")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("message", equalTo("인증되지 않은 디바이스입니다"));
     }
 }

@@ -27,7 +27,7 @@ public abstract class APIBaseTest {
     int port;
 
     @BeforeEach
-    void setUpRestDocs(RestDocumentationContextProvider provider) {
+    protected void setUpRestDocs(RestDocumentationContextProvider provider) {
         RestAssured.port = port;
 
         this.spec = new RequestSpecBuilder()

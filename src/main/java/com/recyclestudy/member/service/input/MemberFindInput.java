@@ -5,9 +5,8 @@ import com.recyclestudy.member.domain.Email;
 
 public record MemberFindInput(Email email, DeviceIdentifier deviceIdentifier) {
 
-    public static MemberFindInput from(final String emailValue, final String identifier) {
+    public static MemberFindInput from(final String emailValue, final DeviceIdentifier identifier) {
         final Email email = Email.from(emailValue);
-        final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from(identifier);
-        return new MemberFindInput(email, deviceIdentifier);
+        return new MemberFindInput(email, identifier);
     }
 }
