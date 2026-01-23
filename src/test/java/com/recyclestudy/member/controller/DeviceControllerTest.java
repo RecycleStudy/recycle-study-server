@@ -473,4 +473,41 @@ class DeviceControllerTest extends APIBaseTest {
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .body("message", equalTo("null이 될 수 없습니다: value"));
     }
+
+    @Test
+    @DisplayName("헤더로 디바이스 인증하여 삭제 시 204 응답을 반환한다")
+    void deleteDevice_WithHeader() {
+        // given
+        final String headerIdentifier = "device-id";
+        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", null, "target-id");
+
+        doNothing().when(memberService).deleteDevice(any());
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Device")
+                                .summary("디바이스 삭제")
+                                .description("헤더로 디바이스 인증하여 삭제 시 204 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
+                                                .description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional(),
+                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
+                                                .description("삭제할 디바이스 식별자")
+                                )
+                ))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", headerIdentifier)
+                .body(request)
+                .when()
+                .delete("/api/v1/device")
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
+    }
 }

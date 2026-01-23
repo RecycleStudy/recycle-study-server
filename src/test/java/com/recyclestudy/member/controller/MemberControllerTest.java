@@ -402,4 +402,63 @@ class MemberControllerTest extends APIBaseTest {
                 .then()
                 .statusCode(HttpStatus.BAD_REQUEST.value());
     }
+
+    @Test
+    @DisplayName("헤더로 디바이스 인증하여 멤버의 모든 디바이스 정보를 조회한다")
+    void findAllMemberDevices_WithHeader() {
+        // given
+        final String email = "test@test.com";
+        final String headerIdentifier = "device-id-1";
+
+        final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
+                DeviceIdentifier.from(headerIdentifier),
+                LocalDateTime.now().minusDays(1)
+        );
+        final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
+                DeviceIdentifier.from("device-id-2"),
+                LocalDateTime.now()
+        );
+
+        final MemberFindOutput output = new MemberFindOutput(
+                Email.from(email),
+                List.of(device1, device2)
+        );
+
+        given(memberService.findAllMemberDevices(any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Member")
+                                .summary("멤버 디바이스 조회")
+                                .description("헤더로 디바이스 인증하여 멤버의 모든 디바이스 정보를 조회한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .queryParameters(
+                                        parameterWithName("email").description("이메일"),
+                                        parameterWithName("identifier").description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional()
+                                )
+                                .responseFields(
+                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("devices").type(JsonFieldType.ARRAY).description("디바이스 목록"),
+                                        fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
+                                                .description("디바이스 식별자 값"),
+                                        fieldWithPath("devices[].createdAt").type(JsonFieldType.STRING)
+                                                .description("디바이스 생성일")
+                                ),
+                        queryParameters(
+                                parameterWithName("email").description("이메일")
+                        )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .param("email", email)
+                .when()
+                .get("/api/v1/members")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("devices", hasSize(2));
+    }
 }

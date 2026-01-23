@@ -170,4 +170,48 @@ class ReviewControllerTest extends APIBaseTest {
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .body("message", equalTo("인증되지 않은 디바이스입니다"));
     }
+
+    @Test
+    @DisplayName("헤더로 디바이스 인증하여 리뷰를 저장하면 201 응답을 반환한다")
+    void saveReview_WithHeader() {
+        // given
+        final String identifier = "device-id";
+        final String url = "https://test.com";
+        final ReviewSaveRequest request = new ReviewSaveRequest(null, url);
+        final ReviewSaveOutput output = ReviewSaveOutput.of(ReviewURL.from(url), List.of(LocalDateTime.now()));
+
+        given(reviewService.saveReview(any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("리뷰 저장")
+                                .description("헤더로 디바이스 인증하여 리뷰를 저장하면 201 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
+                                                .description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional(),
+                                        fieldWithPath("url").type(JsonFieldType.STRING)
+                                                .description("리뷰할 URL")
+                                )
+                                .responseFields(
+                                        fieldWithPath("url").type(JsonFieldType.STRING).description("리뷰할 URL"),
+                                        fieldWithPath("scheduledAts").type(JsonFieldType.ARRAY)
+                                                .description("복습 예정 일시 목록")
+                                )
+                ))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", identifier)
+                .body(request)
+                .when()
+                .post("/api/v1/reviews")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .body("url", equalTo(url));
+    }
 }
