@@ -97,7 +97,7 @@ openapi3 {
     ]
     title = "Recycle-Study Server API Document"
     description = "응답 테스트 검증이 완료된 명세서입니다."
-    version = "0.0.1"
+    version = "1.0.0"
     format = "yaml"
 }
 
@@ -109,6 +109,26 @@ swaggerSources {
 
 tasks.withType(GenerateSwaggerUI).configureEach {
     dependsOn 'openapi3'
+
+    doFirst {
+        def swaggerUIFile = file("${openapi3.outputDirectory}/openapi3.yaml")
+
+        def securitySchemesContent =
+                "  securitySchemes:\n" +
+                "    X-Device-Id:\n" +
+                "      type: apiKey\n" +
+                "      in: header\n" +
+                "      name: X-Device-Id\n" +
+                "      description: 디바이스 인증을 위한 헤더. 디바이스 등록 시 발급받은 식별자를 입력하세요.\n"
+
+        def securityContent =
+                "security:\n" +
+                "  - X-Device-Id: []\n"
+
+        swaggerUIFile.text = swaggerUIFile.text
+                .replace("components:", "components:\n" + securitySchemesContent)
+        swaggerUIFile.append(securityContent)
+    }
 }
 
 tasks.register('copySwaggerDocument', Copy) {

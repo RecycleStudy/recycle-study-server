@@ -5,9 +5,8 @@ import com.recyclestudy.review.domain.ReviewURL;
 
 public record ReviewSaveInput(DeviceIdentifier identifier, ReviewURL url) {
 
-    public static ReviewSaveInput of(final String identifier, final String url) {
-        final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from(identifier);
+    public static ReviewSaveInput of(final DeviceIdentifier identifier, final String url) {
         final ReviewURL reviewURL = ReviewURL.from(url);
-        return new ReviewSaveInput(deviceIdentifier, reviewURL);
+        return new ReviewSaveInput(identifier, reviewURL);
     }
 }

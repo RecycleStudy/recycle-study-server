@@ -1,5 +1,7 @@
 package com.recyclestudy.review.controller;
 
+import com.recyclestudy.common.annotation.AuthDevice;
+import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.review.controller.request.ReviewSaveRequest;
 import com.recyclestudy.review.controller.response.ReviewSaveResponse;
 import com.recyclestudy.review.service.ReviewService;
@@ -23,12 +25,10 @@ public class ReviewController {
 
     @PostMapping
     public ResponseEntity<ReviewSaveResponse> saveReview(
-            @RequestHeader(value = "X-Device-Id", required = false) String headerIdentifier,
+            @AuthDevice final DeviceIdentifier identifier,
             @RequestBody ReviewSaveRequest request
     ) {
-        final String resolvedIdentifier = getResolvedIdentifier(request.identifier(), headerIdentifier);
-
-        final ReviewSaveInput input = ReviewSaveInput.of(resolvedIdentifier, request.targetUrl());
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, request.targetUrl());
         final ReviewSaveOutput output = reviewService.saveReview(input);
         ReviewSaveResponse response = ReviewSaveResponse.of(output.url(), output.scheduledAts());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
