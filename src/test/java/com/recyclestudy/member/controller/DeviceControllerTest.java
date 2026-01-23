@@ -479,7 +479,7 @@ class DeviceControllerTest extends APIBaseTest {
     void deleteDevice_WithHeader() {
         // given
         final String headerIdentifier = "device-id";
-        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", null, "target-id");
+        final DeviceDeleteRequest request = new DeviceDeleteRequest("test@test.com", "target-device-id");
 
         doNothing().when(memberService).deleteDevice(any());
 
@@ -496,8 +496,6 @@ class DeviceControllerTest extends APIBaseTest {
                                 )
                                 .requestFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("identifier").type(JsonFieldType.STRING)
-                                                .description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional(),
                                         fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
                                 )
