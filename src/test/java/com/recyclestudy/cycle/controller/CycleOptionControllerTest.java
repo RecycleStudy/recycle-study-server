@@ -1,9 +1,11 @@
 package com.recyclestudy.cycle.controller;
 
+import com.recyclestudy.cycle.controller.request.CycleOptionSaveRequest;
 import com.recyclestudy.cycle.domain.CycleOptionTitle;
 import com.recyclestudy.cycle.service.CycleOptionService;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
-import com.recyclestudy.exception.UnauthorizedException;
+import com.recyclestudy.cycle.service.output.CycleOptionSaveOutput;
+import com.recyclestudy.exception.BadRequestException;
 import com.recyclestudy.member.domain.ActivationExpiredDateTime;
 import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,6 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import static com.epages.restdocs.apispec.ResourceSnippetParameters.builder;
 import static com.epages.restdocs.apispec.RestAssuredRestDocumentationWrapper.document;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -119,5 +123,93 @@ class CycleOptionControllerTest extends APIBaseTest {
                 .get("/api/v1/cycles/custom")
                 .then()
                 .statusCode(HttpStatus.UNAUTHORIZED.value());
+    }
+
+    @Test
+    @DisplayName("커스텀 주기 옵션을 저장한다")
+    void saveCycleOption() {
+        // given
+        final String headerIdentifier = "device-id";
+        final CycleOptionSaveRequest request = new CycleOptionSaveRequest(
+                "custom title",
+                List.of("PT10M", "P1D")
+        );
+        final CycleOptionSaveOutput output = new CycleOptionSaveOutput(
+                1L,
+                CycleOptionTitle.from("custom title"),
+                List.of(Duration.ofMinutes(10), Duration.ofDays(1))
+        );
+
+        given(cycleOptionService.saveCycleOption(any(), any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("CycleOption")
+                                .summary("커스텀 주기 옵션 저장")
+                                .description("새로운 커스텀 주기 옵션을 저장한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("title").type(JsonFieldType.STRING).description("주기 옵션 제목"),
+                                        fieldWithPath("durations").type(JsonFieldType.ARRAY).description("주기 시간 목록 (ISO 8601 Duration)")
+                                )
+                                .responseFields(
+                                        fieldWithPath("id").type(JsonFieldType.NUMBER).description("생성된 주기 옵션 ID"),
+                                        fieldWithPath("title").type(JsonFieldType.STRING).description("주기 옵션 제목"),
+                                        fieldWithPath("durations").type(JsonFieldType.ARRAY).description("주기 시간 목록")
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .body(request)
+                .when()
+                .post("/api/v1/cycles/custom")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .header("Location", "/api/v1/cycles/custom/1")
+                .body("title", equalTo("custom title"))
+                .body("durations", hasSize(2));
+    }
+
+    @Test
+    @DisplayName("잘못된 요청 데이터로 저장 시 400 응답을 반환한다")
+    void saveCycleOption_BadRequest() {
+        // given
+        final String headerIdentifier = "device-id";
+        final CycleOptionSaveRequest request = new CycleOptionSaveRequest(
+                "title",
+                List.of("PT5M")
+        );
+
+        given(cycleOptionService.saveCycleOption(any(), any()))
+                .willThrow(new BadRequestException("주기는 10분 단위여야 합니다."));
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("CycleOption")
+                                .summary("커스텀 주기 옵션 저장")
+                                .description("잘못된 데이터로 저장 시 400 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .body(request)
+                .when()
+                .post("/api/v1/cycles/custom")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .body("message", equalTo("주기는 10분 단위여야 합니다."));
     }
 }

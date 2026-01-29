@@ -56,6 +56,10 @@ public class CycleOption extends BaseEntity {
         return new CycleOption(member, title, optionType, new ArrayList<>());
     }
 
+    public void addDurations(final List<CycleOptionDuration> newDurations) {
+        this.durations.addAll(newDurations);
+    }
+
     private static void validateNotNull(
             final Member member,
             final CycleOptionTitle title,
