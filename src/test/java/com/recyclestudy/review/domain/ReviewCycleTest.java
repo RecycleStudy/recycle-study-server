@@ -3,6 +3,7 @@ package com.recyclestudy.review.domain;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ class ReviewCycleTest {
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
-        final LocalDateTime scheduledAt = LocalDateTime.now();
+        final LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
         return Stream.of(
                 Arguments.of(null, scheduledAt),
@@ -35,7 +36,7 @@ class ReviewCycleTest {
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
-        final LocalDateTime scheduledAt = LocalDateTime.now();
+        final LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
         // when
         final ReviewCycle actual = ReviewCycle.withoutId(review, scheduledAt);

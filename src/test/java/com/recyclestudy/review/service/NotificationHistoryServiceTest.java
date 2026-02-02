@@ -10,6 +10,7 @@ import com.recyclestudy.review.domain.ReviewURL;
 import com.recyclestudy.review.repository.NotificationHistoryRepository;
 import com.recyclestudy.review.repository.ReviewCycleRepository;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,8 +46,10 @@ class NotificationHistoryServiceTest {
 
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
-        final ReviewCycle cycle1 = ReviewCycle.withoutId(review, LocalDateTime.now());
-        final ReviewCycle cycle2 = ReviewCycle.withoutId(review, LocalDateTime.now().plusDays(1));
+        
+        final LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        final ReviewCycle cycle1 = ReviewCycle.withoutId(review, now);
+        final ReviewCycle cycle2 = ReviewCycle.withoutId(review, now.plusDays(1));
 
         given(reviewCycleRepository.findAllById(reviewCycleIds)).willReturn(List.of(cycle1, cycle2));
 
