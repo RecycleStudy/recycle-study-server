@@ -1,4 +1,6 @@
 package com.recyclestudy.review.controller.request;
 
-public record ReviewSaveRequest(String targetUrl) {
+import com.recyclestudy.cycle.domain.selection.CycleSelection;
+
+public record ReviewSaveRequest(String targetUrl, CycleSelection cycle) {
 }

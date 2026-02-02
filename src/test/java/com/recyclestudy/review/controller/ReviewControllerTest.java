@@ -1,5 +1,6 @@
 package com.recyclestudy.review.controller;
 
+import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.ActivationExpiredDateTime;
 import com.recyclestudy.member.domain.Device;
@@ -52,12 +53,57 @@ class ReviewControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("리뷰를 저장하면 201 응답을 반환한다")
-    void saveReview() {
+    @DisplayName("cycle 없이 리뷰를 저장하면 기본 주기로 201 응답을 반환한다 (하위 호환)")
+    void saveReview_withoutCycle_backwardCompatible() {
         // given
         final String identifier = "device-id";
         final String url = "https://test.com";
-        final ReviewSaveRequest request = new ReviewSaveRequest(url);
+        final ReviewSaveRequest request = new ReviewSaveRequest(url, null);
+        final ReviewSaveOutput output = ReviewSaveOutput.of(ReviewURL.from(url), List.of(LocalDateTime.now()));
+
+        given(reviewService.saveReview(any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("리뷰 저장 (하위 호환)")
+                                .description("cycle 없이 리뷰를 저장하면 기본 주기(EBBINGHAUS)로 저장된다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("targetUrl").type(JsonFieldType.STRING)
+                                                .description("리뷰할 URL"),
+                                        fieldWithPath("cycle").type(JsonFieldType.NULL)
+                                                .description("복습 주기 선택 (null이면 기본 주기 사용)").optional()
+                                )
+                                .responseFields(
+                                        fieldWithPath("url").type(JsonFieldType.STRING).description("리뷰할 URL"),
+                                        fieldWithPath("scheduledAts").type(JsonFieldType.ARRAY)
+                                                .description("복습 예정 일시 목록")
+                                )
+                ))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", identifier)
+                .body(request)
+                .when()
+                .post("/api/v1/reviews")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .body("url", equalTo(url));
+    }
+
+    @Test
+    @DisplayName("기본 주기로 리뷰를 저장하면 201 응답을 반환한다")
+    void saveReview_withDefaultCycle() {
+        // given
+        final String identifier = "device-id";
+        final String url = "https://test.com";
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveRequest request = new ReviewSaveRequest(url, cycleSelection);
         final ReviewSaveOutput output = ReviewSaveOutput.of(ReviewURL.from(url), List.of(LocalDateTime.now()));
 
         given(reviewService.saveReview(any())).willReturn(output);
@@ -69,13 +115,19 @@ class ReviewControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Review")
                                 .summary("리뷰 저장")
-                                .description("리뷰를 저장하면 201 응답을 반환한다")
+                                .description("기본 주기로 리뷰를 저장하면 201 응답을 반환한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
                                         fieldWithPath("targetUrl").type(JsonFieldType.STRING)
-                                                .description("리뷰할 URL")
+                                                .description("리뷰할 URL"),
+                                        fieldWithPath("cycle").type(JsonFieldType.OBJECT)
+                                                .description("복습 주기 선택"),
+                                        fieldWithPath("cycle.type").type(JsonFieldType.STRING)
+                                                .description("주기 타입 (DEFAULT 또는 CUSTOM)"),
+                                        fieldWithPath("cycle.code").type(JsonFieldType.STRING)
+                                                .description("기본 주기 코드 (DEFAULT 타입일 때)")
                                 )
                                 .responseFields(
                                         fieldWithPath("url").type(JsonFieldType.STRING).description("리뷰할 URL"),
@@ -98,7 +150,8 @@ class ReviewControllerTest extends APIBaseTest {
     void saveReview_Unauthorized() {
         // given
         final String identifier = "invalid-id";
-        final ReviewSaveRequest request = new ReviewSaveRequest("https://test.com");
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveRequest request = new ReviewSaveRequest("https://test.com", cycleSelection);
 
         given(reviewService.saveReview(any()))
                 .willThrow(new UnauthorizedException("유효하지 않은 디바이스입니다"));
@@ -116,7 +169,13 @@ class ReviewControllerTest extends APIBaseTest {
                                 )
                                 .requestFields(
                                         fieldWithPath("targetUrl").type(JsonFieldType.STRING)
-                                                .description("리뷰할 URL")
+                                                .description("리뷰할 URL"),
+                                        fieldWithPath("cycle").type(JsonFieldType.OBJECT)
+                                                .description("복습 주기 선택"),
+                                        fieldWithPath("cycle.type").type(JsonFieldType.STRING)
+                                                .description("주기 타입"),
+                                        fieldWithPath("cycle.code").type(JsonFieldType.STRING)
+                                                .description("기본 주기 코드")
                                 )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
@@ -137,7 +196,8 @@ class ReviewControllerTest extends APIBaseTest {
     void saveReview_InactiveDevice() {
         // given
         final String identifier = "inactive-id";
-        final ReviewSaveRequest request = new ReviewSaveRequest("https://test.com");
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveRequest request = new ReviewSaveRequest("https://test.com", cycleSelection);
 
         given(reviewService.saveReview(any()))
                 .willThrow(new UnauthorizedException("인증되지 않은 디바이스입니다"));
@@ -155,7 +215,13 @@ class ReviewControllerTest extends APIBaseTest {
                                 )
                                 .requestFields(
                                         fieldWithPath("targetUrl").type(JsonFieldType.STRING)
-                                                .description("리뷰할 URL")
+                                                .description("리뷰할 URL"),
+                                        fieldWithPath("cycle").type(JsonFieldType.OBJECT)
+                                                .description("복습 주기 선택"),
+                                        fieldWithPath("cycle.type").type(JsonFieldType.STRING)
+                                                .description("주기 타입"),
+                                        fieldWithPath("cycle.code").type(JsonFieldType.STRING)
+                                                .description("기본 주기 코드")
                                 )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")

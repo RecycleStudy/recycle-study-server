@@ -439,7 +439,8 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional()
+                                        parameterWithName("identifier").description("디바이스 식별자 (deprecated, 헤더 사용 권장)")
+                                                .optional()
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
