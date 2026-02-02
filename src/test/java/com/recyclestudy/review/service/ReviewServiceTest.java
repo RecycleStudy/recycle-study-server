@@ -1,5 +1,7 @@
 package com.recyclestudy.review.service;
 
+import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
+import com.recyclestudy.cycle.service.resolver.CycleSelectionResolverRegistry;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
@@ -16,6 +18,7 @@ import com.recyclestudy.review.repository.ReviewRepository;
 import com.recyclestudy.review.service.input.ReviewSaveInput;
 import com.recyclestudy.review.service.output.ReviewSaveOutput;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -51,6 +54,9 @@ class ReviewServiceTest {
     MemberRepository memberRepository;
 
     @Mock
+    CycleSelectionResolverRegistry cycleSelectionResolverRegistry;
+
+    @Mock
     NotificationHistoryRepository notificationHistoryRepository;
 
     @Spy
@@ -72,14 +78,18 @@ class ReviewServiceTest {
         // given
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final String urlValue = "https://test.com";
-        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue);
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue, cycleSelection);
 
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
         final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
 
+        final List<Duration> durations = List.of(Duration.ofDays(1));
+
         given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
+        given(cycleSelectionResolverRegistry.resolve(cycleSelection)).willReturn(durations);
         given(reviewRepository.save(any(Review.class))).willReturn(review);
         given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
 
@@ -97,6 +107,7 @@ class ReviewServiceTest {
         });
 
         verify(memberRepository).findByIdentifier(any(DeviceIdentifier.class));
+        verify(cycleSelectionResolverRegistry).resolve(cycleSelection);
         verify(reviewRepository).save(any(Review.class));
         verify(reviewCycleRepository).saveAll(anyList());
     }
@@ -105,7 +116,12 @@ class ReviewServiceTest {
     @DisplayName("존재하지 않는 디바이스 아이디일 경우 예외를 던진다")
     void saveReview_fail_notFoundDevice() {
         // given
-        final ReviewSaveInput input = ReviewSaveInput.of(DeviceIdentifier.from("not-found"), "https://test.com");
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveInput input = ReviewSaveInput.of(
+                DeviceIdentifier.from("not-found"),
+                "https://test.com",
+                cycleSelection
+        );
         given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.empty());
 
         // when

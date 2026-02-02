@@ -27,7 +27,7 @@ public class ReviewController {
             @AuthDevice final DeviceIdentifier identifier,
             @RequestBody ReviewSaveRequest request
     ) {
-        final ReviewSaveInput input = ReviewSaveInput.of(identifier, request.targetUrl());
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, request.targetUrl(), request.cycle());
         final ReviewSaveOutput output = reviewService.saveReview(input);
         ReviewSaveResponse response = ReviewSaveResponse.of(output.url(), output.scheduledAts());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
