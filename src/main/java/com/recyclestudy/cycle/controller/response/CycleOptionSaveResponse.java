@@ -13,6 +13,5 @@ public record CycleOptionSaveResponse(Long id, String title, List<String> durati
                         .map(Object::toString)
                         .toList()
         );
-
     }
 }
