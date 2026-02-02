@@ -13,6 +13,7 @@ public interface CycleOptionRepository extends JpaRepository<CycleOption, Long> 
                 select co
                 from CycleOption co
                 join fetch co.member m
+                left join fetch co.durations.values
                 where m = :member
             """)
     List<CycleOption> findAllByMember(@Param("member") Member member);

@@ -1,18 +1,19 @@
 package com.recyclestudy.cycle.service;
 
 import com.recyclestudy.cycle.domain.CycleOption;
-import com.recyclestudy.cycle.domain.CycleOptionDuration;
 import com.recyclestudy.cycle.domain.OptionType;
 import com.recyclestudy.cycle.repository.CycleOptionRepository;
 import com.recyclestudy.cycle.service.input.CycleOptionSaveInput;
+import com.recyclestudy.cycle.service.input.CycleOptionUpdateInput;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
 import com.recyclestudy.cycle.service.output.CycleOptionSaveOutput;
 import com.recyclestudy.exception.BadRequestException;
+import com.recyclestudy.exception.ForbiddenException;
+import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Member;
 import com.recyclestudy.member.repository.MemberRepository;
-import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,17 +40,50 @@ public class CycleOptionService {
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
 
         validateCycleOptionCount(member);
-        validateDurations(input.durations());
 
-        final CycleOption cycleOption = CycleOption.withoutId(member, input.title(), OptionType.CUSTOM);
-        final List<CycleOptionDuration> durations = input.durations().stream()
-                .map(duration -> CycleOptionDuration.of(cycleOption, duration))
-                .toList();
-
-        cycleOption.addDurations(durations);
+        final CycleOption cycleOption = CycleOption.withoutId(
+                member,
+                input.title(),
+                OptionType.CUSTOM,
+                input.durations()
+        );
 
         final CycleOption savedCycleOption = cycleOptionRepository.save(cycleOption);
         return CycleOptionSaveOutput.from(savedCycleOption);
+    }
+
+    @Transactional
+    public CycleOptionSaveOutput updateCycleOption(
+            final DeviceIdentifier identifier,
+            final Long cycleOptionId,
+            final CycleOptionUpdateInput input
+    ) {
+        final Member member = memberRepository.findByIdentifier(identifier)
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+
+        final CycleOption cycleOption = cycleOptionRepository.findById(cycleOptionId)
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 주기 옵션입니다."));
+
+        validateOwnership(cycleOption, member);
+        validateOptionType(cycleOption);
+
+        cycleOption.update(input.title(), input.durations());
+
+        return CycleOptionSaveOutput.from(cycleOption);
+    }
+
+    @Transactional
+    public void deleteCycleOption(final DeviceIdentifier identifier, final Long cycleOptionId) {
+        final Member member = memberRepository.findByIdentifier(identifier)
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+
+        final CycleOption cycleOption = cycleOptionRepository.findById(cycleOptionId)
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 주기 옵션입니다."));
+
+        validateOwnership(cycleOption, member);
+        validateOptionType(cycleOption);
+
+        cycleOptionRepository.delete(cycleOption);
     }
 
     private void validateCycleOptionCount(final Member member) {
@@ -63,24 +97,15 @@ public class CycleOptionService {
         }
     }
 
-    private void validateDurations(final List<Duration> durations) {
-        if (durations.isEmpty()) {
-            throw new BadRequestException("주기는 최소 1개 이상이어야 합니다.");
+    private void validateOwnership(final CycleOption cycleOption, final Member member) {
+        if (!cycleOption.isOwner(member)) {
+            throw new ForbiddenException("해당 주기 옵션에 대한 권한이 없습니다.");
         }
+    }
 
-        boolean allTenMinutes = durations.stream()
-                .allMatch(d -> d.toMinutes() % 10 == 0 && d.toMinutes() > 0);
-        if (!allTenMinutes) {
-            throw new BadRequestException("주기는 10분 단위여야 합니다.");
-        }
-
-        if (durations.get(0).toMinutes() < 10) {
-            throw new BadRequestException("첫 번째 주기는 최소 10분 이상이어야 합니다.");
-        }
-
-        Duration lastDuration = durations.get(durations.size() - 1);
-        if (lastDuration.toDays() > 365) {
-            throw new BadRequestException("주기는 최대 1년 이내여야 합니다.");
+    private void validateOptionType(final CycleOption cycleOption) {
+        if (cycleOption.getOptionType() != OptionType.CUSTOM) {
+            throw new ForbiddenException("기본 주기는 수정/삭제할 수 없습니다.");
         }
     }
 }

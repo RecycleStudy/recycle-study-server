@@ -3,6 +3,7 @@ package com.recyclestudy.cycle.domain;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
 import java.time.Duration;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,8 @@ class CycleOptionDurationIdTest {
 
     private static Stream<Arguments> provideInvalidValue() {
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"), OptionType.CUSTOM);
+        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"), OptionType.CUSTOM,
+                List.of(Duration.ofMinutes(10)));
         final Duration duration = Duration.ofMinutes(10);
 
         return Stream.of(
@@ -27,11 +29,16 @@ class CycleOptionDurationIdTest {
     }
 
     @Test
-    @DisplayName("of 메서드를 통해 CycleOptionDurationId를 생성할 수 있다")
+    @DisplayName("withoutId 메서드를 통해 CycleOptionDurationId를 생성할 수 있다")
     void of() {
         // given
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"), OptionType.CUSTOM);
+        final CycleOption cycleOption = CycleOption.withoutId(
+                member,
+                CycleOptionTitle.from("title"),
+                OptionType.CUSTOM,
+                List.of(Duration.ofMinutes(10))
+        );
         final Duration duration = Duration.ofMinutes(10);
 
         // when

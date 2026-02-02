@@ -40,6 +40,13 @@ public class GlobalControllerAdvice {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(final ForbiddenException e) {
+        log.warn("[FORBIDDEN] {}", e.getMessage());
+        final ErrorResponse response = ErrorResponse.from(e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(final IllegalArgumentException e) {
         log.warn("[ILLEGAL_ARGUMENT] {}", e.getMessage());

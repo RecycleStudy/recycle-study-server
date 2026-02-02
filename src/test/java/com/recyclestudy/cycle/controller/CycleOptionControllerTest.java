@@ -1,6 +1,7 @@
 package com.recyclestudy.cycle.controller;
 
 import com.recyclestudy.cycle.controller.request.CycleOptionSaveRequest;
+import com.recyclestudy.cycle.controller.request.CycleOptionUpdateRequest;
 import com.recyclestudy.cycle.domain.CycleOptionTitle;
 import com.recyclestudy.cycle.service.CycleOptionService;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
@@ -35,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 
 class CycleOptionControllerTest extends APIBaseTest {
 
@@ -155,7 +157,8 @@ class CycleOptionControllerTest extends APIBaseTest {
                                 )
                                 .requestFields(
                                         fieldWithPath("title").type(JsonFieldType.STRING).description("주기 옵션 제목"),
-                                        fieldWithPath("durations").type(JsonFieldType.ARRAY).description("주기 시간 목록 (ISO 8601 Duration)")
+                                        fieldWithPath("durations").type(JsonFieldType.ARRAY)
+                                                .description("주기 시간 목록 (ISO 8601 Duration)")
                                 )
                                 .responseFields(
                                         fieldWithPath("id").type(JsonFieldType.NUMBER).description("생성된 주기 옵션 ID"),
@@ -211,5 +214,88 @@ class CycleOptionControllerTest extends APIBaseTest {
                 .then()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
                 .body("message", equalTo("주기는 10분 단위여야 합니다."));
+    }
+
+    @Test
+    @DisplayName("커스텀 주기 옵션을 수정한다")
+    void updateCycleOption() {
+        // given
+        final String headerIdentifier = "device-id";
+        final Long cycleOptionId = 1L;
+        final CycleOptionUpdateRequest request = new CycleOptionUpdateRequest(
+                "updated title",
+                List.of("PT20M")
+        );
+        final CycleOptionSaveOutput output = new CycleOptionSaveOutput(
+                cycleOptionId,
+                CycleOptionTitle.from("updated title"),
+                List.of(Duration.ofMinutes(20))
+        );
+
+        given(cycleOptionService.updateCycleOption(any(), any(), any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("CycleOption")
+                                .summary("커스텀 주기 옵션 수정")
+                                .description("기존 커스텀 주기 옵션을 수정한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .pathParameters(
+                                        parameterWithName("id").description("수정할 주기 옵션 ID")
+                                )
+                                .requestFields(
+                                        fieldWithPath("title").type(JsonFieldType.STRING).description("수정할 주기 옵션 제목"),
+                                        fieldWithPath("durations").type(JsonFieldType.ARRAY)
+                                                .description("수정할 주기 시간 목록")
+                                )
+                                .responseFields(
+                                        fieldWithPath("id").type(JsonFieldType.NUMBER).description("주기 옵션 ID"),
+                                        fieldWithPath("title").type(JsonFieldType.STRING).description("주기 옵션 제목"),
+                                        fieldWithPath("durations").type(JsonFieldType.ARRAY).description("주기 시간 목록")
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .body(request)
+                .when()
+                .put("/api/v1/cycles/custom/{id}", cycleOptionId)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("title", equalTo("updated title"))
+                .body("durations", hasSize(1));
+    }
+
+    @Test
+    @DisplayName("커스텀 주기 옵션을 삭제한다")
+    void deleteCycleOption() {
+        // given
+        final String headerIdentifier = "device-id";
+        final Long cycleOptionId = 1L;
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("CycleOption")
+                                .summary("커스텀 주기 옵션 삭제")
+                                .description("커스텀 주기 옵션을 삭제한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .pathParameters(
+                                        parameterWithName("id").description("삭제할 주기 옵션 ID")
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .when()
+                .delete("/api/v1/cycles/custom/{id}", cycleOptionId)
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
     }
 }
