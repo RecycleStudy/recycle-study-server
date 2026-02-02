@@ -2,7 +2,9 @@ package com.recyclestudy.cycle.controller;
 
 import com.recyclestudy.cycle.controller.request.CycleOptionSaveRequest;
 import com.recyclestudy.cycle.controller.request.CycleOptionUpdateRequest;
+import com.recyclestudy.cycle.domain.CycleOption;
 import com.recyclestudy.cycle.domain.CycleOptionTitle;
+import com.recyclestudy.cycle.domain.DefaultCycleOption;
 import com.recyclestudy.cycle.service.CycleOptionService;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
 import com.recyclestudy.cycle.service.output.CycleOptionSaveOutput;
@@ -26,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.restdocs.RestDocumentationContextProvider;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static com.epages.restdocs.apispec.ResourceSnippetParameters.builder;
 import static com.epages.restdocs.apispec.RestAssuredRestDocumentationWrapper.document;
@@ -61,19 +64,17 @@ class CycleOptionControllerTest extends APIBaseTest {
     void findAllCycleOptions() {
         // given
         final String headerIdentifier = "device-id";
-        final CycleOptionFindOutput.DefaultOptionElement defaultOption = new CycleOptionFindOutput.DefaultOptionElement(
-                "EBBINGHAUS",
-                "에빙하우스 망각곡선",
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final CycleOption customCycleOption = CycleOption.withoutId(
+                member,
+                CycleOptionTitle.from("custom title"),
                 List.of(Duration.ofMinutes(10), Duration.ofHours(1))
         );
-        final CycleOptionFindOutput.CustomOptionElement customOption = new CycleOptionFindOutput.CustomOptionElement(
-                1L,
-                "custom title",
-                List.of(Duration.ofMinutes(10), Duration.ofHours(1))
-        );
-        final CycleOptionFindOutput output = new CycleOptionFindOutput(
-                List.of(defaultOption),
-                List.of(customOption)
+        ReflectionTestUtils.setField(customCycleOption, "id", 1L);
+
+        final CycleOptionFindOutput output = CycleOptionFindOutput.of(
+                List.of(DefaultCycleOption.EBBINGHAUS),
+                List.of(customCycleOption)
         );
 
         given(cycleOptionService.findAllCycleOptions(any())).willReturn(output);
@@ -154,11 +155,16 @@ class CycleOptionControllerTest extends APIBaseTest {
                 "custom title",
                 List.of("PT10M", "P1D")
         );
-        final CycleOptionSaveOutput output = new CycleOptionSaveOutput(
-                1L,
+
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final CycleOption customCycleOption = CycleOption.withoutId(
+                member,
                 CycleOptionTitle.from("custom title"),
                 List.of(Duration.ofMinutes(10), Duration.ofDays(1))
         );
+        ReflectionTestUtils.setField(customCycleOption, "id", 1L);
+
+        final CycleOptionSaveOutput output = CycleOptionSaveOutput.from(customCycleOption);
 
         given(cycleOptionService.saveCycleOption(any(), any())).willReturn(output);
 
@@ -244,11 +250,16 @@ class CycleOptionControllerTest extends APIBaseTest {
                 "updated title",
                 List.of("PT20M")
         );
-        final CycleOptionSaveOutput output = new CycleOptionSaveOutput(
-                cycleOptionId,
+
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final CycleOption customCycleOption = CycleOption.withoutId(
+                member,
                 CycleOptionTitle.from("updated title"),
                 List.of(Duration.ofMinutes(20))
         );
+        ReflectionTestUtils.setField(customCycleOption, "id", cycleOptionId);
+
+        final CycleOptionSaveOutput output = CycleOptionSaveOutput.from(customCycleOption);
 
         given(cycleOptionService.updateCycleOption(any(), any(), any())).willReturn(output);
 

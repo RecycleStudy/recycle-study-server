@@ -51,8 +51,8 @@ class CycleOptionServiceTest {
     private static Stream<Arguments> provideInvalidDurations() {
         return Stream.of(
                 Arguments.of(List.of(), "주기는 최소 1개 이상이어야 합니다."),
-                Arguments.of(List.of("PT5M"), "주기는 10분 단위여야 합니다."),
-                Arguments.of(List.of("P366D"), "주기는 최대 1년 이내여야 합니다.")
+                Arguments.of(List.of(Duration.ofMinutes(5)), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of(Duration.ofDays(366)), "주기는 최대 1년 이내여야 합니다.")
         );
     }
 
@@ -105,7 +105,10 @@ class CycleOptionServiceTest {
         // given
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOptionSaveInput input = CycleOptionSaveInput.of("title", List.of("PT10M", "PT1H"));
+        final CycleOptionSaveInput input = new CycleOptionSaveInput(
+                CycleOptionTitle.from("title"),
+                List.of(Duration.ofMinutes(10), Duration.ofHours(1))
+        );
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
         given(cycleOptionRepository.countByMember(member)).willReturn(0L);
@@ -116,7 +119,7 @@ class CycleOptionServiceTest {
 
         // then
         assertSoftly(softAssertions -> {
-            softAssertions.assertThat(actual.title()).isEqualTo(input.title());
+            softAssertions.assertThat(actual.title().getValue()).isEqualTo(input.title().getValue());
             softAssertions.assertThat(actual.durations()).hasSize(2);
             softAssertions.assertThat(actual.durations().get(0)).isEqualTo(Duration.ofMinutes(10));
             softAssertions.assertThat(actual.durations().get(1)).isEqualTo(Duration.ofHours(1));
@@ -129,7 +132,10 @@ class CycleOptionServiceTest {
         // given
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOptionSaveInput input = CycleOptionSaveInput.of("title", List.of("PT10M"));
+        final CycleOptionSaveInput input = new CycleOptionSaveInput(
+                CycleOptionTitle.from("title"),
+                List.of(Duration.ofMinutes(10))
+        );
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
         given(cycleOptionRepository.countByMember(member)).willReturn(5L);
@@ -144,11 +150,11 @@ class CycleOptionServiceTest {
     @ParameterizedTest(name = "{1}")
     @MethodSource("provideInvalidDurations")
     @DisplayName("주기 시간 간격이 유효하지 않으면 예외를 던진다")
-    void saveCycleOption_invalidDuration(List<String> durationStrings, String errorMessage) {
+    void saveCycleOption_invalidDuration(List<Duration> durations, String errorMessage) {
         // given
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOptionSaveInput input = CycleOptionSaveInput.of("title", durationStrings);
+        final CycleOptionSaveInput input = new CycleOptionSaveInput(CycleOptionTitle.from("title"), durations);
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
         given(cycleOptionRepository.countByMember(member)).willReturn(0L);
@@ -175,7 +181,10 @@ class CycleOptionServiceTest {
         );
         ReflectionTestUtils.setField(cycleOption, "id", 1L);
 
-        final CycleOptionUpdateInput input = CycleOptionUpdateInput.of("new title", List.of("PT20M"));
+        final CycleOptionUpdateInput input = new CycleOptionUpdateInput(
+                CycleOptionTitle.from("new title"),
+                List.of(Duration.ofMinutes(20))
+        );
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
         given(cycleOptionRepository.findByIdWithDurations(1L)).willReturn(Optional.of(cycleOption));
@@ -207,7 +216,10 @@ class CycleOptionServiceTest {
                 CycleOptionTitle.from("title"),
                 List.of(Duration.ofMinutes(10))
         );
-        final CycleOptionUpdateInput input = CycleOptionUpdateInput.of("new title", List.of("PT20M"));
+        final CycleOptionUpdateInput input = new CycleOptionUpdateInput(
+                CycleOptionTitle.from("new title"),
+                List.of(Duration.ofMinutes(20))
+        );
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(other));
         given(cycleOptionRepository.findByIdWithDurations(1L)).willReturn(Optional.of(cycleOption));

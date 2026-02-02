@@ -32,9 +32,9 @@ public record CycleOptionFindResponse(
         return new CycleOptionFindResponse(defaultElements, customElements);
     }
 
-    public record DefaultOptionElement(String code, String title, List<String> durations) {
+    private record DefaultOptionElement(String code, String title, List<String> durations) {
     }
 
-    public record CustomOptionElement(Long id, String title, List<String> durations) {
+    private record CustomOptionElement(Long id, String title, List<String> durations) {
     }
 }

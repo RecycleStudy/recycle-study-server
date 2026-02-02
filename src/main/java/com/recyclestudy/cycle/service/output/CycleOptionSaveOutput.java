@@ -2,6 +2,7 @@ package com.recyclestudy.cycle.service.output;
 
 import com.recyclestudy.cycle.domain.CycleOption;
 import com.recyclestudy.cycle.domain.CycleOptionDuration;
+import com.recyclestudy.cycle.domain.CycleOptionDurationId;
 import com.recyclestudy.cycle.domain.CycleOptionTitle;
 import java.time.Duration;
 import java.util.List;
@@ -14,7 +15,7 @@ public record CycleOptionSaveOutput(Long id, CycleOptionTitle title, List<Durati
                 cycleOption.getTitle(),
                 cycleOption.getDurations().stream()
                         .map(CycleOptionDuration::getId)
-                        .map(id -> id.getDuration()) // Access duration from CycleOptionDurationId
+                        .map(CycleOptionDurationId::getDuration)
                         .toList()
         );
     }

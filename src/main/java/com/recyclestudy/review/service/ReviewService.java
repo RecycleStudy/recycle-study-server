@@ -3,7 +3,6 @@ package com.recyclestudy.review.service;
 import com.recyclestudy.common.BaseEntity;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.Member;
-import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.repository.MemberRepository;
 import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
@@ -31,7 +30,6 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewCycleRepository reviewCycleRepository;
-    private final DeviceRepository deviceRepository;
     private final MemberRepository memberRepository;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final Clock clock;
