@@ -16,7 +16,7 @@ class CycleOptionDurationTest {
     void of() {
         // given
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"), OptionType.CUSTOM,
+        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"),
                 List.of(Duration.ofMinutes(10)));
         final Duration duration = Duration.ofMinutes(10);
 

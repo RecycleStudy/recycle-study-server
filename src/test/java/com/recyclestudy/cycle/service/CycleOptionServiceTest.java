@@ -1,16 +1,14 @@
 package com.recyclestudy.cycle.service;
 
 import com.recyclestudy.cycle.domain.CycleOption;
-import com.recyclestudy.cycle.domain.CycleOptionDuration;
 import com.recyclestudy.cycle.domain.CycleOptionTitle;
-import com.recyclestudy.cycle.domain.OptionType;
+import com.recyclestudy.cycle.domain.DefaultCycleOption;
 import com.recyclestudy.cycle.repository.CycleOptionRepository;
 import com.recyclestudy.cycle.service.input.CycleOptionSaveInput;
 import com.recyclestudy.cycle.service.input.CycleOptionUpdateInput;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
 import com.recyclestudy.cycle.service.output.CycleOptionSaveOutput;
 import com.recyclestudy.exception.BadRequestException;
-import com.recyclestudy.exception.ForbiddenException;
 import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.DeviceIdentifier;
@@ -50,6 +48,14 @@ class CycleOptionServiceTest {
     @InjectMocks
     CycleOptionService cycleOptionService;
 
+    private static Stream<Arguments> provideInvalidDurations() {
+        return Stream.of(
+                Arguments.of(List.of(), "주기는 최소 1개 이상이어야 합니다."),
+                Arguments.of(List.of("PT5M"), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of("P366D"), "주기는 최대 1년 이내여야 합니다.")
+        );
+    }
+
     @Test
     @DisplayName("멤버가 가진 주기 옵션을 조회할 수 있다")
     void findAllCycleOptions() {
@@ -58,8 +64,7 @@ class CycleOptionServiceTest {
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final CycleOption cycleOption = CycleOption.withoutId(
                 member,
-                CycleOptionTitle.from("title"),
-                OptionType.CUSTOM,
+                CycleOptionTitle.from("custom title"),
                 List.of(Duration.ofMinutes(10))
         );
 
@@ -71,10 +76,11 @@ class CycleOptionServiceTest {
 
         // then
         assertSoftly(softAssertions -> {
-            softAssertions.assertThat(actual.options()).hasSize(1);
-            softAssertions.assertThat(actual.options().getFirst().title().getValue()).isEqualTo("title");
-            softAssertions.assertThat(actual.options().getFirst().durations()).hasSize(1);
-            softAssertions.assertThat(actual.options().getFirst().durations().getFirst())
+            softAssertions.assertThat(actual.defaultOptions()).hasSize(DefaultCycleOption.getAll().size());
+            softAssertions.assertThat(actual.customOptions()).hasSize(1);
+            softAssertions.assertThat(actual.customOptions().getFirst().title()).isEqualTo("custom title");
+            softAssertions.assertThat(actual.customOptions().getFirst().durations()).hasSize(1);
+            softAssertions.assertThat(actual.customOptions().getFirst().durations().getFirst())
                     .isEqualTo(Duration.ofMinutes(10));
         });
     }
@@ -102,7 +108,7 @@ class CycleOptionServiceTest {
         final CycleOptionSaveInput input = CycleOptionSaveInput.of("title", List.of("PT10M", "PT1H"));
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(cycleOptionRepository.findAllByMember(member)).willReturn(List.of());
+        given(cycleOptionRepository.countByMember(member)).willReturn(0L);
         given(cycleOptionRepository.save(any(CycleOption.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
@@ -125,30 +131,14 @@ class CycleOptionServiceTest {
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final CycleOptionSaveInput input = CycleOptionSaveInput.of("title", List.of("PT10M"));
 
-        final List<CycleOption> existingOptions = List.of(
-                CycleOption.withoutId(member, CycleOptionTitle.from("1"), OptionType.CUSTOM, List.of(Duration.ofMinutes(10))),
-                CycleOption.withoutId(member, CycleOptionTitle.from("2"), OptionType.CUSTOM, List.of(Duration.ofMinutes(10))),
-                CycleOption.withoutId(member, CycleOptionTitle.from("3"), OptionType.CUSTOM, List.of(Duration.ofMinutes(10))),
-                CycleOption.withoutId(member, CycleOptionTitle.from("4"), OptionType.CUSTOM, List.of(Duration.ofMinutes(10))),
-                CycleOption.withoutId(member, CycleOptionTitle.from("5"), OptionType.CUSTOM, List.of(Duration.ofMinutes(10)))
-        );
-
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(cycleOptionRepository.findAllByMember(member)).willReturn(existingOptions);
+        given(cycleOptionRepository.countByMember(member)).willReturn(5L);
 
         // when
         // then
         assertThatThrownBy(() -> cycleOptionService.saveCycleOption(identifier, input))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("커스텀 주기는 최대 5개까지만 생성 가능합니다.");
-    }
-
-    private static Stream<Arguments> provideInvalidDurations() {
-        return Stream.of(
-                Arguments.of(List.of(), "주기는 최소 1개 이상이어야 합니다."),
-                Arguments.of(List.of("PT5M"), "주기는 10분 단위여야 합니다."),
-                Arguments.of(List.of("P366D"), "주기는 최대 1년 이내여야 합니다.")
-        );
     }
 
     @ParameterizedTest(name = "{1}")
@@ -161,7 +151,7 @@ class CycleOptionServiceTest {
         final CycleOptionSaveInput input = CycleOptionSaveInput.of("title", durationStrings);
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(cycleOptionRepository.findAllByMember(member)).willReturn(List.of());
+        given(cycleOptionRepository.countByMember(member)).willReturn(0L);
 
         // when
         // then
@@ -181,7 +171,6 @@ class CycleOptionServiceTest {
         final CycleOption cycleOption = CycleOption.withoutId(
                 member,
                 CycleOptionTitle.from("old"),
-                OptionType.CUSTOM,
                 List.of(Duration.ofMinutes(10))
         );
         ReflectionTestUtils.setField(cycleOption, "id", 1L);
@@ -189,7 +178,7 @@ class CycleOptionServiceTest {
         final CycleOptionUpdateInput input = CycleOptionUpdateInput.of("new title", List.of("PT20M"));
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(cycleOptionRepository.findById(1L)).willReturn(Optional.of(cycleOption));
+        given(cycleOptionRepository.findByIdWithDurations(1L)).willReturn(Optional.of(cycleOption));
 
         // when
         final CycleOptionSaveOutput actual = cycleOptionService.updateCycleOption(identifier, 1L, input);
@@ -204,7 +193,7 @@ class CycleOptionServiceTest {
 
     @Test
     @DisplayName("소유자가 아닌 경우 수정 시 예외를 던진다")
-    void updateCycleOption_forbidden() {
+    void updateCycleOption_notOwner() {
         // given
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final Member owner = Member.withoutId(Email.from("owner@test.com"));
@@ -216,45 +205,18 @@ class CycleOptionServiceTest {
         final CycleOption cycleOption = CycleOption.withoutId(
                 owner,
                 CycleOptionTitle.from("title"),
-                OptionType.CUSTOM,
                 List.of(Duration.ofMinutes(10))
         );
         final CycleOptionUpdateInput input = CycleOptionUpdateInput.of("new title", List.of("PT20M"));
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(other));
-        given(cycleOptionRepository.findById(1L)).willReturn(Optional.of(cycleOption));
+        given(cycleOptionRepository.findByIdWithDurations(1L)).willReturn(Optional.of(cycleOption));
 
         // when
         // then
         assertThatThrownBy(() -> cycleOptionService.updateCycleOption(identifier, 1L, input))
-                .isInstanceOf(ForbiddenException.class)
-                .hasMessage("해당 주기 옵션에 대한 권한이 없습니다.");
-    }
-
-    @Test
-    @DisplayName("기본 주기를 수정하려는 경우 예외를 던진다")
-    void updateCycleOption_forbidden_default() {
-        // given
-        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
-        final Member member = Member.withoutId(Email.from("test@test.com"));
-        ReflectionTestUtils.setField(member, "id", 1L);
-
-        final CycleOption cycleOption = CycleOption.withoutId(
-                member,
-                CycleOptionTitle.from("title"),
-                OptionType.DEFAULT,
-                List.of(Duration.ofMinutes(10))
-        );
-        final CycleOptionUpdateInput input = CycleOptionUpdateInput.of("new title", List.of("PT20M"));
-
-        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(cycleOptionRepository.findById(1L)).willReturn(Optional.of(cycleOption));
-
-        // when
-        // then
-        assertThatThrownBy(() -> cycleOptionService.updateCycleOption(identifier, 1L, input))
-                .isInstanceOf(ForbiddenException.class)
-                .hasMessage("기본 주기는 수정/삭제할 수 없습니다.");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("존재하지 않는 주기 옵션입니다.");
     }
 
     @Test
@@ -268,7 +230,6 @@ class CycleOptionServiceTest {
         final CycleOption cycleOption = CycleOption.withoutId(
                 member,
                 CycleOptionTitle.from("title"),
-                OptionType.CUSTOM,
                 List.of(Duration.ofMinutes(10))
         );
         ReflectionTestUtils.setField(cycleOption, "id", 1L);

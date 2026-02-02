@@ -20,7 +20,7 @@ import lombok.experimental.FieldNameConstants;
 @Getter
 @ToString
 @EqualsAndHashCode
-public class CycleOptionDuration {
+public class CycleOptionDuration implements Comparable<CycleOptionDuration> {
 
     @EmbeddedId
     private CycleOptionDurationId id;
@@ -31,5 +31,10 @@ public class CycleOptionDuration {
 
     public Duration getDuration() {
         return this.getId().getDuration();
+    }
+
+    @Override
+    public int compareTo(final CycleOptionDuration o) {
+        return this.id.getDuration().compareTo(o.getDuration());
     }
 }

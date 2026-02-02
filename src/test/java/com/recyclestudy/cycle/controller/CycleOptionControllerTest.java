@@ -61,12 +61,20 @@ class CycleOptionControllerTest extends APIBaseTest {
     void findAllCycleOptions() {
         // given
         final String headerIdentifier = "device-id";
-        final CycleOptionFindOutput.CycleOptionElement option = new CycleOptionFindOutput.CycleOptionElement(
-                1L,
-                CycleOptionTitle.from("title"),
+        final CycleOptionFindOutput.DefaultOptionElement defaultOption = new CycleOptionFindOutput.DefaultOptionElement(
+                "EBBINGHAUS",
+                "에빙하우스 망각곡선",
                 List.of(Duration.ofMinutes(10), Duration.ofHours(1))
         );
-        final CycleOptionFindOutput output = new CycleOptionFindOutput(List.of(option));
+        final CycleOptionFindOutput.CustomOptionElement customOption = new CycleOptionFindOutput.CustomOptionElement(
+                1L,
+                "custom title",
+                List.of(Duration.ofMinutes(10), Duration.ofHours(1))
+        );
+        final CycleOptionFindOutput output = new CycleOptionFindOutput(
+                List.of(defaultOption),
+                List.of(customOption)
+        );
 
         given(cycleOptionService.findAllCycleOptions(any())).willReturn(output);
 
@@ -82,12 +90,21 @@ class CycleOptionControllerTest extends APIBaseTest {
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .responseFields(
-                                        fieldWithPath("options").type(JsonFieldType.ARRAY).description("주기 옵션 목록"),
-                                        fieldWithPath("options[].id").type(JsonFieldType.NUMBER)
-                                                .description("주기 옵션 ID"),
-                                        fieldWithPath("options[].title").type(JsonFieldType.STRING)
-                                                .description("주기 옵션 제목"),
-                                        fieldWithPath("options[].durations").type(JsonFieldType.ARRAY)
+                                        fieldWithPath("defaultOptions").type(JsonFieldType.ARRAY)
+                                                .description("기본 주기 옵션 목록"),
+                                        fieldWithPath("defaultOptions[].code").type(JsonFieldType.STRING)
+                                                .description("기본 주기 옵션 코드"),
+                                        fieldWithPath("defaultOptions[].title").type(JsonFieldType.STRING)
+                                                .description("기본 주기 옵션 제목"),
+                                        fieldWithPath("defaultOptions[].durations").type(JsonFieldType.ARRAY)
+                                                .description("주기 시간 목록 (ISO 8601 Duration)"),
+                                        fieldWithPath("customOptions").type(JsonFieldType.ARRAY)
+                                                .description("커스텀 주기 옵션 목록"),
+                                        fieldWithPath("customOptions[].id").type(JsonFieldType.NUMBER)
+                                                .description("커스텀 주기 옵션 ID"),
+                                        fieldWithPath("customOptions[].title").type(JsonFieldType.STRING)
+                                                .description("커스텀 주기 옵션 제목"),
+                                        fieldWithPath("customOptions[].durations").type(JsonFieldType.ARRAY)
                                                 .description("주기 시간 목록 (ISO 8601 Duration)")
                                 )
                 ))
@@ -96,7 +113,8 @@ class CycleOptionControllerTest extends APIBaseTest {
                 .get("/api/v1/cycles/custom")
                 .then()
                 .statusCode(HttpStatus.OK.value())
-                .body("options", hasSize(1));
+                .body("defaultOptions", hasSize(1))
+                .body("customOptions", hasSize(1));
     }
 
     @Test

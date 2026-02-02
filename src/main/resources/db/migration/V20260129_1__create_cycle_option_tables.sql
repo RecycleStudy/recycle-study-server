@@ -4,7 +4,6 @@ create table cycle_option
     id          bigint auto_increment primary key,
     member_id   bigint       not null,
     title       varchar(255) not null,
-    option_type varchar(255) not null,
     created_at  datetime(6)  not null,
     modified_at datetime(6)  null,
     constraint fk_cycle_option_member_id

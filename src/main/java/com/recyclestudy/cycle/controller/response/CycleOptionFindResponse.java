@@ -3,21 +3,38 @@ package com.recyclestudy.cycle.controller.response;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
 import java.util.List;
 
-public record CycleOptionFindResponse(List<CycleOptionElement> options) {
+public record CycleOptionFindResponse(
+        List<DefaultOptionElement> defaultOptions,
+        List<CustomOptionElement> customOptions
+) {
 
     public static CycleOptionFindResponse from(final CycleOptionFindOutput output) {
-        final List<CycleOptionElement> optionElements = output.options().stream()
-                .map(option -> new CycleOptionElement(
-                        option.id(),
-                        option.title().getValue(),
+        final List<DefaultOptionElement> defaultElements = output.defaultOptions().stream()
+                .map(option -> new DefaultOptionElement(
+                        option.code(),
+                        option.title(),
                         option.durations().stream()
                                 .map(Object::toString)
                                 .toList()
                 ))
                 .toList();
-        return new CycleOptionFindResponse(optionElements);
+
+        final List<CustomOptionElement> customElements = output.customOptions().stream()
+                .map(option -> new CustomOptionElement(
+                        option.id(),
+                        option.title(),
+                        option.durations().stream()
+                                .map(Object::toString)
+                                .toList()
+                ))
+                .toList();
+
+        return new CycleOptionFindResponse(defaultElements, customElements);
     }
 
-    public record CycleOptionElement(Long id, String title, List<String> durations) {
+    public record DefaultOptionElement(String code, String title, List<String> durations) {
+    }
+
+    public record CustomOptionElement(Long id, String title, List<String> durations) {
     }
 }

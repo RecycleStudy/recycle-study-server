@@ -18,7 +18,7 @@ class CycleOptionDurationIdTest {
 
     private static Stream<Arguments> provideInvalidValue() {
         final Member member = Member.withoutId(Email.from("test@test.com"));
-        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"), OptionType.CUSTOM,
+        final CycleOption cycleOption = CycleOption.withoutId(member, CycleOptionTitle.from("title"),
                 List.of(Duration.ofMinutes(10)));
         final Duration duration = Duration.ofMinutes(10);
 
@@ -36,7 +36,6 @@ class CycleOptionDurationIdTest {
         final CycleOption cycleOption = CycleOption.withoutId(
                 member,
                 CycleOptionTitle.from("title"),
-                OptionType.CUSTOM,
                 List.of(Duration.ofMinutes(10))
         );
         final Duration duration = Duration.ofMinutes(10);

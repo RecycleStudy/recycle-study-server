@@ -7,8 +7,6 @@ import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -35,43 +33,45 @@ public class CycleOption extends BaseEntity {
     @AttributeOverride(name = "value", column = @Column(name = "title", nullable = false))
     private CycleOptionTitle title;
 
-    @Enumerated(value = EnumType.STRING)
-    @Column(name = "option_type", nullable = false)
-    private OptionType optionType;
-
     @Embedded
     private CycleDurations durations;
 
-    private CycleOption(
-            final Member member,
-            final CycleOptionTitle title,
-            final OptionType optionType
-    ) {
+    private CycleOption(final Member member, final CycleOptionTitle title) {
         this.member = member;
         this.title = title;
-        this.optionType = optionType;
     }
 
     public static CycleOption withoutId(
             final Member member,
             final CycleOptionTitle title,
-            final OptionType optionType,
             final List<Duration> durations
     ) {
-        validateNotNull(member, title, optionType, durations);
+        validateNotNull(member, title, durations);
 
-        final CycleOption option = new CycleOption(member, title, optionType);
+        final CycleOption option = new CycleOption(member, title);
 
         final List<CycleOptionDuration> cycleOptionDurations = durations.stream()
                 .map(duration -> CycleOptionDuration.of(option, duration))
                 .toList();
-        option.durations = new CycleDurations(cycleOptionDurations);
+        option.durations = CycleDurations.from(cycleOptionDurations);
 
         return option;
     }
 
+    private static void validateNotNull(
+            final Member member,
+            final CycleOptionTitle title,
+            final List<Duration> durations
+    ) {
+        NullValidator.builder()
+                .add(Fields.member, member)
+                .add(Fields.title, title)
+                .add(Fields.durations, durations)
+                .validate();
+    }
+
     public void update(final CycleOptionTitle title, final List<Duration> newDurationValues) {
-        validateNotNull(member, title, optionType, newDurationValues);
+        validateNotNull(member, title, newDurationValues);
         this.title = title;
 
         final List<CycleOptionDuration> newDurations = newDurationValues.stream()
@@ -86,19 +86,5 @@ public class CycleOption extends BaseEntity {
 
     public List<CycleOptionDuration> getDurations() {
         return durations.getValues();
-    }
-
-    private static void validateNotNull(
-            final Member member,
-            final CycleOptionTitle title,
-            final OptionType optionType,
-            final List<Duration> durations
-    ) {
-        NullValidator.builder()
-                .add(Fields.member, member)
-                .add(Fields.title, title)
-                .add(Fields.optionType, optionType)
-                .add(Fields.durations, durations)
-                .validate();
     }
 }

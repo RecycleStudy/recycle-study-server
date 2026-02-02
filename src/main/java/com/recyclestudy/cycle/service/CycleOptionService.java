@@ -1,14 +1,13 @@
 package com.recyclestudy.cycle.service;
 
 import com.recyclestudy.cycle.domain.CycleOption;
-import com.recyclestudy.cycle.domain.OptionType;
+import com.recyclestudy.cycle.domain.DefaultCycleOption;
 import com.recyclestudy.cycle.repository.CycleOptionRepository;
 import com.recyclestudy.cycle.service.input.CycleOptionSaveInput;
 import com.recyclestudy.cycle.service.input.CycleOptionUpdateInput;
 import com.recyclestudy.cycle.service.output.CycleOptionFindOutput;
 import com.recyclestudy.cycle.service.output.CycleOptionSaveOutput;
 import com.recyclestudy.exception.BadRequestException;
-import com.recyclestudy.exception.ForbiddenException;
 import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.DeviceIdentifier;
@@ -30,8 +29,11 @@ public class CycleOptionService {
     public CycleOptionFindOutput findAllCycleOptions(final DeviceIdentifier identifier) {
         final Member member = memberRepository.findByIdentifier(identifier)
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
-        final List<CycleOption> cycleOptions = cycleOptionRepository.findAllByMember(member);
-        return CycleOptionFindOutput.from(cycleOptions);
+
+        final List<DefaultCycleOption> defaultOptions = DefaultCycleOption.getAll();
+        final List<CycleOption> customOptions = cycleOptionRepository.findAllByMember(member);
+
+        return CycleOptionFindOutput.of(defaultOptions, customOptions);
     }
 
     @Transactional
@@ -44,7 +46,6 @@ public class CycleOptionService {
         final CycleOption cycleOption = CycleOption.withoutId(
                 member,
                 input.title(),
-                OptionType.CUSTOM,
                 input.durations()
         );
 
@@ -61,11 +62,10 @@ public class CycleOptionService {
         final Member member = memberRepository.findByIdentifier(identifier)
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
 
-        final CycleOption cycleOption = cycleOptionRepository.findById(cycleOptionId)
+        final CycleOption cycleOption = cycleOptionRepository.findByIdWithDurations(cycleOptionId)
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 주기 옵션입니다."));
 
         validateOwnership(cycleOption, member);
-        validateOptionType(cycleOption);
 
         cycleOption.update(input.title(), input.durations());
 
@@ -81,31 +81,20 @@ public class CycleOptionService {
                 .orElseThrow(() -> new NotFoundException("존재하지 않는 주기 옵션입니다."));
 
         validateOwnership(cycleOption, member);
-        validateOptionType(cycleOption);
 
         cycleOptionRepository.delete(cycleOption);
     }
 
     private void validateCycleOptionCount(final Member member) {
-        final List<CycleOption> cycleOptions = cycleOptionRepository.findAllByMember(member);
-        long customCount = cycleOptions.stream()
-                .filter(option -> option.getOptionType() == OptionType.CUSTOM)
-                .count();
-
-        if (customCount >= 5) {
+        final long count = cycleOptionRepository.countByMember(member);
+        if (count >= 5) {
             throw new BadRequestException("커스텀 주기는 최대 5개까지만 생성 가능합니다.");
         }
     }
 
     private void validateOwnership(final CycleOption cycleOption, final Member member) {
         if (!cycleOption.isOwner(member)) {
-            throw new ForbiddenException("해당 주기 옵션에 대한 권한이 없습니다.");
-        }
-    }
-
-    private void validateOptionType(final CycleOption cycleOption) {
-        if (cycleOption.getOptionType() != OptionType.CUSTOM) {
-            throw new ForbiddenException("기본 주기는 수정/삭제할 수 없습니다.");
+            throw new NotFoundException("존재하지 않는 주기 옵션입니다.");
         }
     }
 }

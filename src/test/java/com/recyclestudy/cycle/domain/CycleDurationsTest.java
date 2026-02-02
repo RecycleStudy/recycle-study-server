@@ -20,22 +20,27 @@ class CycleDurationsTest {
 
     private CycleOption cycleOption;
 
+    private static Stream<Arguments> provideInvalidDurations() {
+        return Stream.of(
+                Arguments.of(List.of(), "주기는 최소 1개 이상이어야 합니다."),
+                Arguments.of(List.of("PT10M", "PT10M"), "중복된 주기가 존재합니다."),
+                Arguments.of(List.of("-PT10M"), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of("PT0S"), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of("PT5M"), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of("PT15M"), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of("PT1M"), "주기는 10분 단위여야 합니다."),
+                Arguments.of(List.of("P366D"), "주기는 최대 1년 이내여야 합니다."),
+                Arguments.of(List.of("PT10M", "P400D"), "주기는 최대 1년 이내여야 합니다.")
+        );
+    }
+
     @BeforeEach
     void setup() {
         final Member member = Member.withoutId(Email.from("test@test.com"));
         cycleOption = CycleOption.withoutId(
                 member,
                 CycleOptionTitle.from("title"),
-                OptionType.CUSTOM,
                 List.of(Duration.ofMinutes(10))
-        );
-    }
-
-    private static Stream<Arguments> provideInvalidDurations() {
-        return Stream.of(
-                Arguments.of(List.of(), "주기는 최소 1개 이상이어야 합니다."),
-                Arguments.of(List.of("PT5M"), "주기는 10분 단위여야 합니다."),
-                Arguments.of(List.of("P366D"), "주기는 최대 1년 이내여야 합니다.")
         );
     }
 
@@ -49,7 +54,7 @@ class CycleDurationsTest {
         );
 
         // when
-        final CycleDurations actual = new CycleDurations(durations);
+        final CycleDurations actual = CycleDurations.from(durations);
 
         // then
         assertThat(actual.getValues()).hasSize(2);
@@ -66,7 +71,7 @@ class CycleDurationsTest {
 
         // when
         // then
-        assertThatThrownBy(() -> new CycleDurations(durations))
+        assertThatThrownBy(() -> CycleDurations.from(durations))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage(errorMessage);
     }
