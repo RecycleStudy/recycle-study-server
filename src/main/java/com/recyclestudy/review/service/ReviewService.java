@@ -19,6 +19,7 @@ import com.recyclestudy.review.service.output.ReviewSaveOutput;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +68,7 @@ public class ReviewService {
     private List<LocalDateTime> calculateScheduledAts(final CycleSelection cycleSelection) {
         final CycleSelection resolvedCycle = resolveDefaultCycleIfNull(cycleSelection);
         final List<Duration> durations = cycleSelectionResolverRegistry.resolve(resolvedCycle);
-        final LocalDateTime baseTime = LocalDateTime.now(clock);
+        final LocalDateTime baseTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
 
         return durations.stream()
                 .map(baseTime::plus)
