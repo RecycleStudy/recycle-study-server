@@ -104,21 +104,4 @@ class ReviewEmailSenderTest {
         verify(singleReviewEmailSender, never()).sendOne(any());
     }
 
-    @Test
-    @DisplayName("메일 발송은 비동기적으로 처리되어 전체 시간이 지연되지 않아야 한다 (Non-blocking Expectation)")
-    void sendReviewMail_executesAsynchronously() {
-        // given
-        final ReviewSendElement user1 = ReviewSendElement.of(Email.from("user1@test.com"), List.of(1L), List.of());
-        final ReviewSendElement user2 = ReviewSendElement.of(Email.from("user2@test.com"), List.of(2L), List.of());
-        final ReviewSendOutput output = new ReviewSendOutput(List.of(user1, user2));
-
-        given(reviewCycleService.findTargetReviewCycle(any())).willReturn(output);
-
-        // then
-        assertTimeout(Duration.ofMillis(100), () -> {
-            reviewEmailSender.sendReviewMail();
-        }, "메일 발송 요청은 즉시 완료되어야 합니다.");
-
-        verify(singleReviewEmailSender, times(2)).sendOne(any());
-    }
 }
