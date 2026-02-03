@@ -16,11 +16,9 @@ public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> 
             SELECT rc FROM ReviewCycle rc
             JOIN NotificationHistory nh ON rc.id = nh.reviewCycle.id
             GROUP BY rc
-            HAVING SUM(CASE WHEN nh.status = :sentStatus THEN 1 ELSE 0 END) = 0
-            AND COUNT(nh) < :maxRetryCount
+            HAVING SUM(CASE WHEN nh.status = 'SENT' THEN 1 ELSE 0 END) = 0
+            AND SUM(CASE WHEN nh.status = 'FAILED' THEN 1 ELSE 0 END) > 0
+            AND SUM(CASE WHEN nh.status = 'FAILED' THEN 1 ELSE 0 END) < :maxRetryCount
             """)
-    List<ReviewCycle> findAllRetryableCycles(
-            @Param("maxRetryCount") long maxRetryCount,
-            @Param("sentStatus") NotificationStatus sentStatus
-    );
+    List<ReviewCycle> findAllRetryableCycles(@Param("maxRetryCount") long maxRetryCount);
 }

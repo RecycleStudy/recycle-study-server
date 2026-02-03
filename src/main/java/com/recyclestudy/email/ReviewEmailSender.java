@@ -5,9 +5,7 @@ import com.recyclestudy.review.service.input.ReviewSendInput;
 import com.recyclestudy.review.service.output.ReviewSendOutput;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -26,17 +24,13 @@ public class ReviewEmailSender {
 
     @Scheduled(cron = "${schedule.review-mail.cron}", zone = "Asia/Seoul")
     public void sendReviewMail() {
-
-        final LocalDate targetDate = LocalDate.now(clock);
-        final LocalTime targetTime = LocalTime.of(8, 0);
-
         final LocalDateTime targetDateTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
 
         final ReviewSendOutput targetReviewCycle = reviewCycleService.findTargetReviewCycle(
                 ReviewSendInput.from(targetDateTime));
 
         final List<ReviewSendElement> elements = targetReviewCycle.elements();
-        log.info("[REVIEW_MAIL_SENT] 복습 메일 발송 시작: date={}, time={}, size={}", targetDate, targetTime, elements.size());
+        log.info("[REVIEW_MAIL_SENT] 복습 메일 발송 시작: datetime={}, size={}", targetDateTime, elements.size());
 
         for (final ReviewSendElement element : elements) {
             singleReviewEmailSender.sendOne(element);

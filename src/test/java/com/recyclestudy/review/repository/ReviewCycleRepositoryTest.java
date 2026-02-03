@@ -40,15 +40,32 @@ class ReviewCycleRepositoryTest {
         final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
         final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
 
-        // 실패 이력 1회 저장
+        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3, NotificationStatus.SENT);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
 
         // then
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().getId()).isEqualTo(cycle.getId());
+        assertThat(results.get(0).getId()).isEqualTo(cycle.getId());
+    }
+
+    @Test
+    @DisplayName("PENDING 상태만 있는 경우는 재시도 대상이 아니다")
+    void findAllRetryableCycles_pendingOnly() {
+        // given
+        final Member member = memberRepository.save(Member.withoutId(Email.from("pending@email.com")));
+        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
+        final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
+
+        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
+
+        // when
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
+
+        // then
+        assertThat(results).isEmpty();
     }
 
     @Test
@@ -59,11 +76,12 @@ class ReviewCycleRepositoryTest {
         final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
         final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
 
+        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.SENT));
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3, NotificationStatus.SENT);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
 
         // then
         assertThat(results).isEmpty();
@@ -77,19 +95,20 @@ class ReviewCycleRepositoryTest {
         final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
         final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
 
+        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3, NotificationStatus.SENT);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
 
         // then
         assertThat(results).isEmpty();
     }
 
     @Test
-    @DisplayName("전송 시도 이력이 없는 경우 재시도 대상이 아니다")
+    @DisplayName("이력이 없는 경우 재시도 대상이 아니다")
     void findAllRetryableCycles_noHistory() {
         // given
         final Member member = memberRepository.save(Member.withoutId(Email.from("new@email.com")));
@@ -97,7 +116,7 @@ class ReviewCycleRepositoryTest {
         reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3, NotificationStatus.SENT);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
 
         // then
         assertThat(results).isEmpty();

@@ -39,7 +39,7 @@ class EmailRetryServiceTest {
     @DisplayName("재시도 대상이 없으면 아무 동작도 하지 않는다")
     void retryFailedEmails_noData() {
         // given
-        given(reviewCycleRepository.findAllRetryableCycles(any(Long.class), any())).willReturn(Collections.emptyList());
+        given(reviewCycleRepository.findAllRetryableCycles(any(Long.class))).willReturn(Collections.emptyList());
 
         // when
         emailRetryService.retryFailedEmails();
@@ -68,7 +68,7 @@ class EmailRetryServiceTest {
         given(cycle2.getId()).willReturn(2L);
         given(cycle2.getReview()).willReturn(review1);
 
-        given(reviewCycleRepository.findAllRetryableCycles(any(Long.class), any()))
+        given(reviewCycleRepository.findAllRetryableCycles(any(Long.class)))
                 .willReturn(List.of(cycle1, cycle2));
 
         // when

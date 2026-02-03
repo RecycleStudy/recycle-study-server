@@ -1,7 +1,6 @@
 package com.recyclestudy.email;
 
 import com.recyclestudy.member.domain.Member;
-import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewCycle;
 import com.recyclestudy.review.domain.ReviewURL;
 import com.recyclestudy.review.repository.ReviewCycleRepository;
@@ -26,10 +25,7 @@ public class EmailRetryService {
 
     @Transactional(readOnly = true)
     public void retryFailedEmails() {
-        final List<ReviewCycle> failedCycles = reviewCycleRepository.findAllRetryableCycles(
-                MAX_RETRY_COUNT,
-                NotificationStatus.SENT
-        );
+        final List<ReviewCycle> failedCycles = reviewCycleRepository.findAllRetryableCycles(MAX_RETRY_COUNT);
 
         if (failedCycles.isEmpty()) {
             return;
@@ -43,22 +39,25 @@ public class EmailRetryService {
         for (final Map.Entry<Member, List<ReviewCycle>> entry : cyclesByMember.entrySet()) {
             final Member member = entry.getKey();
             final List<ReviewCycle> cycles = entry.getValue();
-
-            final List<ReviewURL> urls = cycles.stream()
-                    .map(rc -> rc.getReview().getUrl())
-                    .toList();
-
-            final List<Long> cycleIds = cycles.stream()
-                    .map(ReviewCycle::getId)
-                    .toList();
-
-            final ReviewSendElement element = ReviewSendElement.of(
-                    member.getEmail(),
-                    cycleIds,
-                    urls
-            );
-
-            singleReviewEmailSender.sendOne(element);
+            sendOneRetryEmail(cycles, member);
         }
+    }
+
+    private void sendOneRetryEmail(final List<ReviewCycle> cycles, final Member member) {
+        final List<ReviewURL> urls = cycles.stream()
+                .map(reviewCycle -> reviewCycle.getReview().getUrl())
+                .toList();
+
+        final List<Long> cycleIds = cycles.stream()
+                .map(ReviewCycle::getId)
+                .toList();
+
+        final ReviewSendElement element = ReviewSendElement.of(
+                member.getEmail(),
+                cycleIds,
+                urls
+        );
+
+        singleReviewEmailSender.sendOne(element);
     }
 }
