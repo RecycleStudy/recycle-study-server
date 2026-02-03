@@ -1,6 +1,7 @@
 package com.recyclestudy.member.domain;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ class DeviceTest {
         final Member member = Member.withoutId(email);
         final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from("test");
         final ActivationExpiredDateTime activationExpiredDateTime = ActivationExpiredDateTime.create(
-                LocalDateTime.now());
+                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
 
         return Stream.of(
                 Arguments.of(member, null, activationExpiredDateTime),
@@ -37,7 +38,7 @@ class DeviceTest {
         final Member member = Member.withoutId(email);
         final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from("test");
         final ActivationExpiredDateTime activationExpiredDateTime = ActivationExpiredDateTime.create(
-                LocalDateTime.now());
+                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
 
         // when
         final Device actual = Device.withoutId(member, deviceIdentifier, false, activationExpiredDateTime);
@@ -67,7 +68,7 @@ class DeviceTest {
     @DisplayName("activate 메서드를 통해 Device를 활성화할 수 있다")
     void activate() {
         // given
-        final LocalDateTime now = LocalDateTime.now();
+        final LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         final Device device = Device.withoutId(
                 Member.withoutId(Email.from("test@test.com")),
                 DeviceIdentifier.from("test"),
@@ -88,7 +89,7 @@ class DeviceTest {
     @DisplayName("만료 시간이 지난 후 activate 메서드 호출 시, 예외를 던진다")
     void activate_fail_expired() {
         // given
-        final LocalDateTime now = LocalDateTime.now();
+        final LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         final Device device = Device.withoutId(
                 Member.withoutId(Email.from("test@test.com")),
                 DeviceIdentifier.from("test"),
@@ -112,7 +113,7 @@ class DeviceTest {
                 Member.withoutId(email),
                 DeviceIdentifier.from("test"),
                 false,
-                ActivationExpiredDateTime.create(LocalDateTime.now())
+                ActivationExpiredDateTime.create(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES))
         );
 
         // when
@@ -130,7 +131,7 @@ class DeviceTest {
                 Member.withoutId(email),
                 DeviceIdentifier.from("test"),
                 false,
-                ActivationExpiredDateTime.create(LocalDateTime.now())
+                ActivationExpiredDateTime.create(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES))
         );
 
         // when

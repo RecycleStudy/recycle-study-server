@@ -3,6 +3,7 @@ package com.recyclestudy.review.domain;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ class NotificationHistoryTest {
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
-        return ReviewCycle.withoutId(review, LocalDateTime.now());
+        return ReviewCycle.withoutId(review, LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
     }
 
     @Test
