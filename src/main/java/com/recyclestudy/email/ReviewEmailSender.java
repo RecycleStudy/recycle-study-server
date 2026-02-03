@@ -6,16 +6,18 @@ import com.recyclestudy.review.service.output.ReviewSendOutput;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ReviewEmailSender {
 
     private final SingleReviewEmailSender singleReviewEmailSender;
@@ -28,8 +30,10 @@ public class ReviewEmailSender {
         final LocalDate targetDate = LocalDate.now(clock);
         final LocalTime targetTime = LocalTime.of(8, 0);
 
+        final LocalDateTime targetDateTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+
         final ReviewSendOutput targetReviewCycle = reviewCycleService.findTargetReviewCycle(
-                ReviewSendInput.from(targetDate, targetTime));
+                ReviewSendInput.from(targetDateTime));
 
         final List<ReviewSendElement> elements = targetReviewCycle.elements();
         log.info("[REVIEW_MAIL_SENT] 복습 메일 발송 시작: date={}, time={}, size={}", targetDate, targetTime, elements.size());

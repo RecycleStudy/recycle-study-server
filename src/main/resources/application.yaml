@@ -69,4 +69,4 @@ auth:
 
 schedule:
   review-mail:
-    cron: "0 0 8 * * *"
+    cron: "0 * * * * *"

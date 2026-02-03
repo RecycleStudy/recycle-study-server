@@ -1,12 +1,5 @@
 package com.recyclestudy.email;
 
-import static org.assertj.core.api.SoftAssertions.assertSoftly;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.verify;
-
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewURL;
@@ -22,6 +15,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class SingleReviewEmailSenderTest {
@@ -65,7 +66,7 @@ class SingleReviewEmailSenderTest {
         final List<Long> ids = List.of(1L);
         final ReviewSendElement element = ReviewSendElement.of(email, ids, List.of());
 
-        given(templateEngine.process(any(), any())).willReturn("<html></html>");
+        given(templateEngine.process(anyString(), any())).willReturn("<html></html>");
         willThrow(new RuntimeException("SMTP error")).given(emailSender).send(any(), any(), any());
 
         // when
