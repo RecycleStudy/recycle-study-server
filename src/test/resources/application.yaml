@@ -29,3 +29,7 @@ spring:
 
 auth:
   base-url: http://localhost:8080
+
+schedule:
+  review-mail:
+    cron: "-"

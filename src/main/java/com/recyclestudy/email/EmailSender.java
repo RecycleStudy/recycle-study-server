@@ -27,11 +27,9 @@ public class EmailSender {
             helper.setText(content, true);
 
             javaMailSender.send(mimeMessage);
-
             log.info("[MAIL_SENT] 메일 발송 성공: email={}", targetEmail.toMaskedValue());
-
         } catch (MessagingException e) {
-            log.error("[MAIL_SEND_FAILED] 메일 발송 실패: email={}", targetEmail, e);
+            log.error("[MAIL_SEND_FAILED] 메일 발송 실패: email={}", targetEmail.toMaskedValue(), e);
             throw new EmailSendException("메일 전송 중 오류가 발생했습니다.", e);
         }
     }

@@ -9,9 +9,7 @@ import com.recyclestudy.review.repository.ReviewCycleRepository;
 import com.recyclestudy.review.service.input.ReviewSendInput;
 import com.recyclestudy.review.service.output.ReviewSendOutput;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,10 +37,7 @@ class ReviewCycleServiceTest {
     void findTargetReviewCycle_success() {
         // given
         final LocalDateTime scheduledAt = LocalDateTime.of(2025, 1, 1, 8, 0);
-        final ReviewSendInput input = ReviewSendInput.from(
-                LocalDate.of(2025, 1, 1),
-                LocalTime.of(8, 0)
-        );
+        final ReviewSendInput input = ReviewSendInput.from(scheduledAt);
 
         final Member member = Member.withoutId(Email.from("user@test.com"));
         final Review review = Review.withoutId(member, ReviewURL.from("https://example.com/article"));
@@ -66,10 +61,7 @@ class ReviewCycleServiceTest {
     void findTargetReviewCycle_empty() {
         // given
         final LocalDateTime scheduledAt = LocalDateTime.of(2025, 1, 1, 8, 0);
-        final ReviewSendInput input = ReviewSendInput.from(
-                LocalDate.of(2025, 1, 1),
-                LocalTime.of(8, 0)
-        );
+        final ReviewSendInput input = ReviewSendInput.from(scheduledAt);
 
         given(reviewCycleRepository.findAllByScheduledAt(scheduledAt)).willReturn(List.of());
 
@@ -85,10 +77,7 @@ class ReviewCycleServiceTest {
     void findTargetReviewCycle_groupByEmail() {
         // given
         final LocalDateTime scheduledAt = LocalDateTime.of(2025, 1, 1, 8, 0);
-        final ReviewSendInput input = ReviewSendInput.from(
-                LocalDate.of(2025, 1, 1),
-                LocalTime.of(8, 0)
-        );
+        final ReviewSendInput input = ReviewSendInput.from(scheduledAt);
 
         final Member member = Member.withoutId(Email.from("user@test.com"));
         final Review review1 = Review.withoutId(member, ReviewURL.from("https://example.com/article1"));
@@ -116,10 +105,7 @@ class ReviewCycleServiceTest {
     void findTargetReviewCycle_multipleUsers() {
         // given
         final LocalDateTime scheduledAt = LocalDateTime.of(2025, 1, 1, 8, 0);
-        final ReviewSendInput input = ReviewSendInput.from(
-                LocalDate.of(2025, 1, 1),
-                LocalTime.of(8, 0)
-        );
+        final ReviewSendInput input = ReviewSendInput.from(scheduledAt);
 
         final Member member1 = Member.withoutId(Email.from("user1@test.com"));
         final Member member2 = Member.withoutId(Email.from("user2@test.com"));
