@@ -18,6 +18,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.assertj.core.api.SoftAssertions;
@@ -56,7 +57,7 @@ class MemberServiceTest {
 
     @BeforeEach
     void setUp() {
-        now = LocalDateTime.now(clock);
+        now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
     }
 
     @Test

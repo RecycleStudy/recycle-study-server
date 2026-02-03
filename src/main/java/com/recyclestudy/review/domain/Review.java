@@ -28,7 +28,7 @@ public class Review extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
-    
+
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "url", nullable = false, columnDefinition = "TEXT"))
     private ReviewURL url;

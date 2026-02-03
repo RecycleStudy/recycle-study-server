@@ -15,6 +15,7 @@ import com.recyclestudy.member.service.output.MemberFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import com.recyclestudy.restdocs.APIBaseTest;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +57,7 @@ class MemberControllerTest extends APIBaseTest {
         // Default mock: device exists and is active
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final Device activeDevice = Device.withoutId(member, DeviceIdentifier.from("device-id-1"),
-                true, ActivationExpiredDateTime.create(LocalDateTime.now()));
+                true, ActivationExpiredDateTime.create(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)));
         given(deviceRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(activeDevice));
     }
 
@@ -108,11 +109,11 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from(headerIdentifier),
-                LocalDateTime.now().minusDays(1)
+                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).minusDays(1)
         );
         final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from("device-id-2"),
-                LocalDateTime.now()
+                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
         );
 
         final MemberFindOutput output = new MemberFindOutput(
@@ -412,11 +413,11 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from(headerIdentifier),
-                LocalDateTime.now().minusDays(1)
+                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).minusDays(1)
         );
         final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from("device-id-2"),
-                LocalDateTime.now()
+                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
         );
 
         final MemberFindOutput output = new MemberFindOutput(
@@ -438,8 +439,7 @@ class MemberControllerTest extends APIBaseTest {
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .queryParameters(
-                                        parameterWithName("email").description("이메일"),
-                                        parameterWithName("identifier").description("디바이스 식별자 (deprecated, 헤더 사용 권장)").optional()
+                                        parameterWithName("email").description("이메일")
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),

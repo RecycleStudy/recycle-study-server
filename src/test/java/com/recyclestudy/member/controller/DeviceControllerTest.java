@@ -13,6 +13,7 @@ import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.service.MemberService;
 import com.recyclestudy.restdocs.APIBaseTest;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +54,7 @@ class DeviceControllerTest extends APIBaseTest {
         // Default mock: device exists and is active
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final Device activeDevice = Device.withoutId(member, DeviceIdentifier.from("device-id"),
-                true, ActivationExpiredDateTime.create(LocalDateTime.now()));
+                true, ActivationExpiredDateTime.create(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)));
         given(deviceRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(activeDevice));
     }
 

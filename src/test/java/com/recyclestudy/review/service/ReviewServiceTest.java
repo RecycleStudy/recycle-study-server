@@ -1,5 +1,7 @@
 package com.recyclestudy.review.service;
 
+import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
+import com.recyclestudy.cycle.service.resolver.CycleSelectionResolverRegistry;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
@@ -16,9 +18,11 @@ import com.recyclestudy.review.repository.ReviewRepository;
 import com.recyclestudy.review.service.input.ReviewSaveInput;
 import com.recyclestudy.review.service.output.ReviewSaveOutput;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +55,9 @@ class ReviewServiceTest {
     MemberRepository memberRepository;
 
     @Mock
+    CycleSelectionResolverRegistry cycleSelectionResolverRegistry;
+
+    @Mock
     NotificationHistoryRepository notificationHistoryRepository;
 
     @Spy
@@ -63,7 +70,7 @@ class ReviewServiceTest {
 
     @BeforeEach
     void setUp() {
-        now = LocalDateTime.now(clock);
+        now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
     }
 
     @Test
@@ -72,14 +79,18 @@ class ReviewServiceTest {
         // given
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
         final String urlValue = "https://test.com";
-        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue);
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue, cycleSelection);
 
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
         final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
 
+        final List<Duration> durations = List.of(Duration.ofDays(1));
+
         given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
+        given(cycleSelectionResolverRegistry.resolve(cycleSelection)).willReturn(durations);
         given(reviewRepository.save(any(Review.class))).willReturn(review);
         given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
 
@@ -97,15 +108,54 @@ class ReviewServiceTest {
         });
 
         verify(memberRepository).findByIdentifier(any(DeviceIdentifier.class));
+        verify(cycleSelectionResolverRegistry).resolve(cycleSelection);
         verify(reviewRepository).save(any(Review.class));
         verify(reviewCycleRepository).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("cycle이 null이면 기본 주기(EBBINGHAUS)를 사용한다")
+    void saveReview_withNullCycle_usesDefaultCycle() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final String urlValue = "https://test.com";
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue, null);
+
+        final Email email = Email.from("test@test.com");
+        final Member member = Member.withoutId(email);
+        final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
+        final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
+
+        final List<Duration> durations = List.of(Duration.ofDays(1));
+        final DefaultCycleSelection defaultCycle = new DefaultCycleSelection("EBBINGHAUS");
+
+        given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
+        given(cycleSelectionResolverRegistry.resolve(defaultCycle)).willReturn(durations);
+        given(reviewRepository.save(any(Review.class))).willReturn(review);
+        given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
+
+        // when
+        final ReviewSaveOutput actual = reviewService.saveReview(input);
+
+        // then
+        assertSoftly(softAssertions -> {
+            softAssertions.assertThat(actual.url()).isEqualTo(ReviewURL.from(urlValue));
+            softAssertions.assertThat(actual.scheduledAts()).hasSize(1);
+        });
+
+        verify(cycleSelectionResolverRegistry).resolve(defaultCycle);
     }
 
     @Test
     @DisplayName("존재하지 않는 디바이스 아이디일 경우 예외를 던진다")
     void saveReview_fail_notFoundDevice() {
         // given
-        final ReviewSaveInput input = ReviewSaveInput.of(DeviceIdentifier.from("not-found"), "https://test.com");
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveInput input = ReviewSaveInput.of(
+                DeviceIdentifier.from("not-found"),
+                "https://test.com",
+                cycleSelection
+        );
         given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.empty());
 
         // when

@@ -1,23 +1,25 @@
 package com.recyclestudy.review.service;
 
 import com.recyclestudy.common.BaseEntity;
+import com.recyclestudy.cycle.domain.selection.CycleSelection;
+import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
+import com.recyclestudy.cycle.service.resolver.CycleSelectionResolverRegistry;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.Member;
-import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.repository.MemberRepository;
 import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.Review;
 import com.recyclestudy.review.domain.ReviewCycle;
-import com.recyclestudy.review.domain.ReviewCycleDuration;
 import com.recyclestudy.review.repository.NotificationHistoryRepository;
 import com.recyclestudy.review.repository.ReviewCycleRepository;
 import com.recyclestudy.review.repository.ReviewRepository;
 import com.recyclestudy.review.service.input.ReviewSaveInput;
 import com.recyclestudy.review.service.output.ReviewSaveOutput;
 import java.time.Clock;
-import java.time.LocalDate;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +33,8 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewCycleRepository reviewCycleRepository;
-    private final DeviceRepository deviceRepository;
     private final MemberRepository memberRepository;
+    private final CycleSelectionResolverRegistry cycleSelectionResolverRegistry;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final Clock clock;
 
@@ -45,8 +47,7 @@ public class ReviewService {
         final Review savedReview = reviewRepository.save(review);
         log.info("[REVIEW_SAVED] 복습 주제 저장 성공: reviewId={}", savedReview.getId());
 
-        final LocalDate current = LocalDate.now(clock);
-        final List<LocalDateTime> scheduledAts = ReviewCycleDuration.calculate(current);
+        final List<LocalDateTime> scheduledAts = calculateScheduledAts(input.cycle());
 
         final List<ReviewCycle> reviewCycles = scheduledAts.stream()
                 .map(scheduledAt -> ReviewCycle.withoutId(savedReview, scheduledAt))
@@ -62,6 +63,24 @@ public class ReviewService {
         savePendingNotificationHistory(savedReviewCycles);
 
         return ReviewSaveOutput.of(savedReview.getUrl(), savedScheduledAts);
+    }
+
+    private List<LocalDateTime> calculateScheduledAts(final CycleSelection cycleSelection) {
+        final CycleSelection resolvedCycle = resolveDefaultCycleIfNull(cycleSelection);
+        final List<Duration> durations = cycleSelectionResolverRegistry.resolve(resolvedCycle);
+        final LocalDateTime baseTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+
+        return durations.stream()
+                .map(baseTime::plus)
+                .toList();
+    }
+
+    @Deprecated // 프론트 마이그레이션 완료 후 제거 예정
+    private CycleSelection resolveDefaultCycleIfNull(final CycleSelection cycleSelection) {
+        if (cycleSelection != null) {
+            return cycleSelection;
+        }
+        return new DefaultCycleSelection("EBBINGHAUS");
     }
 
     private void savePendingNotificationHistory(final List<ReviewCycle> savedReviewCycles) {

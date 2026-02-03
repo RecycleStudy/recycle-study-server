@@ -66,3 +66,7 @@ management:
 
 auth:
   base-url: ${BASE_URL}
+
+schedule:
+  review-mail:
+    cron: "0 * * * * *"
