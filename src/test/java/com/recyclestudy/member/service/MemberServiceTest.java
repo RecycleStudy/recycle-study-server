@@ -261,7 +261,6 @@ class MemberServiceTest {
             softAssertions.assertThat(member.getNotificationTime()).isNotNull();
             softAssertions.assertThat(member.getNotificationTime()).isEqualTo(notificationTime);
         });
-
     }
 
     @Test
