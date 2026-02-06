@@ -95,9 +95,11 @@ public class MemberService {
     public void updateNotificationTime(final MemberNotificationTimeUpdateInput input) {
         final Member member = memberRepository.findByIdentifier(input.identifier())
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+        final LocalTime previousNotificationTime = member.getNotificationTime();
+
         member.updateNotificationTime(input.notificationTime());
         log.info("[MEMBER_NOTI_TIME_UPDATED] 멤버 알림 시간 변경: memberId={}, from={}, to={}",
-                member.getId(), member.getNotificationTime(), input.notificationTime());
+                member.getId(), previousNotificationTime, input.notificationTime());
     }
 
     private Member saveNewMember(final Email email) {
