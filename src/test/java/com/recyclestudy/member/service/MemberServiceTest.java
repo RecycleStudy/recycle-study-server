@@ -2,6 +2,7 @@ package com.recyclestudy.member.service;
 
 import com.recyclestudy.exception.BadRequestException;
 import com.recyclestudy.exception.NotFoundException;
+import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.ActivationExpiredDateTime;
 import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
@@ -11,17 +12,18 @@ import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.repository.MemberRepository;
 import com.recyclestudy.member.service.input.DeviceDeleteInput;
 import com.recyclestudy.member.service.input.MemberFindInput;
+import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.input.MemberSaveInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -122,7 +125,7 @@ class MemberServiceTest {
         final MemberFindOutput actual = memberService.findAllMemberDevices(input);
 
         // then
-        SoftAssertions.assertSoftly(softAssertions -> {
+        assertSoftly(softAssertions -> {
             softAssertions.assertThat(actual.elements()).hasSize(1);
             softAssertions.assertThat(actual.elements().getFirst().identifier()).isEqualTo(input.deviceIdentifier());
         });
@@ -236,5 +239,45 @@ class MemberServiceTest {
 
         // then
         verify(deviceRepository).deleteByIdentifier(targetDeviceIdentifier);
+    }
+
+    @Test
+    @DisplayName("멤버의 알림 시간을 업데이트할 수 있다")
+    void updateNotificationTime() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final LocalTime notificationTime = LocalTime.of(9, 0);
+        final MemberNotificationTimeUpdateInput input = new MemberNotificationTimeUpdateInput(identifier,
+                notificationTime);
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
+
+        // when
+        memberService.updateNotificationTime(input);
+
+        // then
+        assertSoftly(softAssertions -> {
+            softAssertions.assertThat(member.getNotificationTime()).isNotNull();
+            softAssertions.assertThat(member.getNotificationTime()).isEqualTo(notificationTime);
+        });
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 디바이스로 알림 시간 업데이트 시 예외를 던진다")
+    void updateNotificationTime_UnauthorizedDevice() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("invalid-id");
+        final LocalTime notificationTime = LocalTime.of(9, 0);
+        final MemberNotificationTimeUpdateInput input = new MemberNotificationTimeUpdateInput(identifier,
+                notificationTime);
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.empty());
+
+        // when
+        // then
+        assertThatThrownBy(() -> memberService.updateNotificationTime(input))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("유효하지 않은 디바이스입니다");
     }
 }

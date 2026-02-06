@@ -21,6 +21,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -163,5 +164,44 @@ class ReviewServiceTest {
         assertThatThrownBy(() -> reviewService.saveReview(input))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("유효하지 않은 디바이스입니다");
+    }
+
+    @Test
+    @DisplayName("사용자가 선호 알림 시간을 설정한 경우 1일 이상의 주기는 해당 시간에 맞춰 조정된다")
+    void saveReview_withPreferredNotificationTime() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final String urlValue = "https://test.com";
+        final DefaultCycleSelection cycleSelection = new DefaultCycleSelection("EBBINGHAUS");
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue, cycleSelection);
+
+        final Email email = Email.from("test@test.com");
+        final Member member = Member.withoutId(email);
+        final LocalTime preferredTime = LocalTime.of(9, 0);
+        member.updateNotificationTime(preferredTime);
+
+        final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
+
+        final List<Duration> durations = List.of(Duration.ofMinutes(10), Duration.ofDays(1));
+
+        given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
+        given(cycleSelectionResolverRegistry.resolve(cycleSelection)).willReturn(durations);
+        given(reviewRepository.save(any(Review.class))).willReturn(review);
+
+        final ArgumentCaptor<List<ReviewCycle>> cycleCaptor = ArgumentCaptor.forClass(List.class);
+        given(reviewCycleRepository.saveAll(cycleCaptor.capture())).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        reviewService.saveReview(input);
+
+        // then
+        final List<ReviewCycle> capturedCycles = cycleCaptor.getValue();
+        assertSoftly(softAssertions -> {
+            softAssertions.assertThat(capturedCycles).hasSize(2);
+            softAssertions.assertThat(capturedCycles.getFirst().getScheduledAt())
+                    .isEqualTo(now.plusMinutes(10));
+            softAssertions.assertThat(capturedCycles.get(1).getScheduledAt())
+                    .isEqualTo(now.plusDays(1).with(preferredTime));
+        });
     }
 }
