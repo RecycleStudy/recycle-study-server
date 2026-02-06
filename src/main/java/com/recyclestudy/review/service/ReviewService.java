@@ -47,7 +47,7 @@ public class ReviewService {
         final Review savedReview = reviewRepository.save(review);
         log.info("[REVIEW_SAVED] 복습 주제 저장 성공: reviewId={}", savedReview.getId());
 
-        final List<LocalDateTime> scheduledAts = calculateScheduledAts(input.cycle());
+        final List<LocalDateTime> scheduledAts = calculateScheduledAts(input.cycle(), member);
 
         final List<ReviewCycle> reviewCycles = scheduledAts.stream()
                 .map(scheduledAt -> ReviewCycle.withoutId(savedReview, scheduledAt))
@@ -65,14 +65,25 @@ public class ReviewService {
         return ReviewSaveOutput.of(savedReview.getUrl(), savedScheduledAts);
     }
 
-    private List<LocalDateTime> calculateScheduledAts(final CycleSelection cycleSelection) {
+    private List<LocalDateTime> calculateScheduledAts(final CycleSelection cycleSelection, final Member member) {
         final CycleSelection resolvedCycle = resolveDefaultCycleIfNull(cycleSelection);
         final List<Duration> durations = cycleSelectionResolverRegistry.resolve(resolvedCycle);
         final LocalDateTime baseTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
 
         return durations.stream()
-                .map(baseTime::plus)
+                .map(duration -> calculateScheduledAt(baseTime, duration, member))
                 .toList();
+    }
+
+    private LocalDateTime calculateScheduledAt(final LocalDateTime baseTime, final Duration duration, final Member member) {
+        final LocalDateTime scheduledAt = baseTime.plus(duration);
+        if (duration.toDays() < 1 || member.getNotificationTime() == null) {
+            return scheduledAt;
+        }
+        final LocalDateTime adjustedTime = scheduledAt.with(member.getNotificationTime()).truncatedTo(ChronoUnit.MINUTES);
+        log.info("[REVIEW_SCHEDULE_ADJUSTED] 복습 주기 시간 조정: original={}, adjusted={}, memberId={}",
+                scheduledAt, adjustedTime, member.getId());
+        return adjustedTime;
     }
 
     @Deprecated // 프론트 마이그레이션 완료 후 제거 예정

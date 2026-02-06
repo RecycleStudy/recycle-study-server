@@ -3,6 +3,7 @@ package com.recyclestudy.member.controller;
 import com.recyclestudy.email.DeviceAuthEmailSender;
 import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
+import com.recyclestudy.member.controller.request.MemberNotificationTimeUpdateRequest;
 import com.recyclestudy.member.controller.request.MemberSaveRequest;
 import com.recyclestudy.member.domain.ActivationExpiredDateTime;
 import com.recyclestudy.member.domain.Device;
@@ -11,10 +12,12 @@ import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
 import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.service.MemberService;
+import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import com.recyclestudy.restdocs.APIBaseTest;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -118,6 +121,7 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput output = new MemberFindOutput(
                 Email.from(email),
+                LocalTime.of(9, 0),
                 List.of(device1, device2)
         );
 
@@ -139,6 +143,8 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
+                                                .description("알림 시간").optional(),
                                         fieldWithPath("devices").type(JsonFieldType.ARRAY).description("디바이스 목록"),
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
@@ -422,6 +428,7 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput output = new MemberFindOutput(
                 Email.from(email),
+                null,
                 List.of(device1, device2)
         );
 
@@ -443,6 +450,8 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
+                                                .description("알림 시간").optional(),
                                         fieldWithPath("devices").type(JsonFieldType.ARRAY).description("디바이스 목록"),
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
@@ -460,5 +469,39 @@ class MemberControllerTest extends APIBaseTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("devices", hasSize(2));
+    }
+
+    @Test
+    @DisplayName("멤버의 알림 시간을 업데이트한다")
+    void updateNotificationTime() {
+        // given
+        final String headerIdentifier = "device-id-1";
+        final LocalTime notificationTime = LocalTime.of(9, 0);
+        final MemberNotificationTimeUpdateRequest request = new MemberNotificationTimeUpdateRequest(notificationTime);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Member")
+                                .summary("멤버 알림 시간 업데이트")
+                                .description("멤버의 알림 시간을 업데이트한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .requestFields(
+                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING).description("알림 시간 (HH:mm:ss)")
+                                )
+                ))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .header("X-Device-Id", headerIdentifier)
+                .body(request)
+                .when()
+                .patch("/api/v1/members/notification-time")
+                .then()
+                .statusCode(HttpStatus.OK.value());
+
+        verify(memberService).updateNotificationTime(any(MemberNotificationTimeUpdateInput.class));
     }
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.time.LocalTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,9 +26,12 @@ public class Member extends BaseEntity {
     @AttributeOverride(name = "value", column = @Column(name = "email", nullable = false, unique = true))
     private Email email;
 
+    @Column(name = "notification_time")
+    private LocalTime notificationTime;
+
     public static Member withoutId(final Email email) {
         validateNotNull(email);
-        return new Member(email);
+        return new Member(email, null);
     }
 
     private static void validateNotNull(final Email email) {
@@ -38,5 +42,9 @@ public class Member extends BaseEntity {
 
     public boolean hasEmail(final Email email) {
         return this.email.equals(email);
+    }
+
+    public void updateNotificationTime(final LocalTime notificationTime) {
+        this.notificationTime = notificationTime;
     }
 }
