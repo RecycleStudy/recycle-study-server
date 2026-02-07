@@ -5,6 +5,7 @@ import com.recyclestudy.email.DeviceAuthEmailSender;
 import com.recyclestudy.member.controller.request.MemberNotificationTimeUpdateRequest;
 import com.recyclestudy.member.controller.request.MemberSaveRequest;
 import com.recyclestudy.member.controller.response.MemberFindResponse;
+import com.recyclestudy.member.controller.response.MemberNotificationTimeFindResponse;
 import com.recyclestudy.member.controller.response.MemberSaveResponse;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.service.MemberService;
@@ -12,6 +13,7 @@ import com.recyclestudy.member.service.input.MemberFindInput;
 import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.input.MemberSaveInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
+import com.recyclestudy.member.service.output.MemberNotificationTimeFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -52,6 +54,15 @@ public class MemberController {
         final MemberFindInput input = MemberFindInput.from(email, identifier);
         final MemberFindOutput output = memberService.findAllMemberDevices(input);
         final MemberFindResponse response = MemberFindResponse.from(output);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/notification-time")
+    public ResponseEntity<MemberNotificationTimeFindResponse> findNotificationTime(
+            @AuthDevice final DeviceIdentifier identifier
+    ) {
+        final MemberNotificationTimeFindOutput output = memberService.findNotificationTime(identifier);
+        final MemberNotificationTimeFindResponse response = MemberNotificationTimeFindResponse.from(output);
         return ResponseEntity.ok(response);
     }
 

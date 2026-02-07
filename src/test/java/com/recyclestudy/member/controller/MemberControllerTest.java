@@ -14,6 +14,7 @@ import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.service.MemberService;
 import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
+import com.recyclestudy.member.service.output.MemberNotificationTimeFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import com.recyclestudy.restdocs.APIBaseTest;
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -121,7 +123,6 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput output = new MemberFindOutput(
                 Email.from(email),
-                LocalTime.of(9, 0),
                 List.of(device1, device2)
         );
 
@@ -143,8 +144,6 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
-                                                .description("알림 시간").optional(),
                                         fieldWithPath("devices").type(JsonFieldType.ARRAY).description("디바이스 목록"),
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
@@ -428,7 +427,6 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput output = new MemberFindOutput(
                 Email.from(email),
-                null,
                 List.of(device1, device2)
         );
 
@@ -450,8 +448,6 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
-                                                .description("알림 시간").optional(),
                                         fieldWithPath("devices").type(JsonFieldType.ARRAY).description("디바이스 목록"),
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
@@ -469,6 +465,105 @@ class MemberControllerTest extends APIBaseTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("devices", hasSize(2));
+    }
+
+    @Test
+    @DisplayName("멤버의 알림 시간을 조회한다")
+    void findNotificationTime() {
+        // given
+        final String headerIdentifier = "device-id-1";
+        final LocalTime notificationTime = LocalTime.of(9, 0);
+        final MemberNotificationTimeFindOutput output = new MemberNotificationTimeFindOutput(notificationTime);
+
+        given(memberService.findNotificationTime(any(DeviceIdentifier.class))).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Member")
+                                .summary("멤버 알림 시간 조회")
+                                .description("멤버의 알림 시간을 조회한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
+                                                .description("알림 시간 (HH:mm:ss)")
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .when()
+                .get("/api/v1/members/notification-time")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("notificationTime", equalTo("09:00:00"));
+    }
+
+    @Test
+    @DisplayName("알림 시간을 설정하지 않은 멤버 조회 시 null을 반환한다")
+    void findNotificationTime_NullNotificationTime() {
+        // given
+        final String headerIdentifier = "device-id-1";
+        final MemberNotificationTimeFindOutput output = new MemberNotificationTimeFindOutput(null);
+
+        given(memberService.findNotificationTime(any(DeviceIdentifier.class))).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Member")
+                                .summary("멤버 알림 시간 조회")
+                                .description("알림 시간을 설정하지 않은 멤버 조회 시 null을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
+                                                .description("알림 시간 (미설정 시 null)").optional()
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .when()
+                .get("/api/v1/members/notification-time")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("notificationTime", Matchers.nullValue());
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 디바이스로 알림 시간 조회 시 401 응답을 반환한다")
+    void findNotificationTime_UnauthorizedDevice() {
+        // given
+        final String headerIdentifier = "invalid-device-id";
+
+        given(memberService.findNotificationTime(any(DeviceIdentifier.class)))
+                .willThrow(new UnauthorizedException("유효하지 않은 디바이스입니다"));
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Member")
+                                .summary("멤버 알림 시간 조회")
+                                .description("유효하지 않은 디바이스로 알림 시간 조회 시 401 응답을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
+                                )
+                ))
+                .header("X-Device-Id", headerIdentifier)
+                .when()
+                .get("/api/v1/members/notification-time")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("message", equalTo("유효하지 않은 디바이스입니다"));
     }
 
     @Test
