@@ -15,6 +15,7 @@ import com.recyclestudy.member.service.input.MemberFindInput;
 import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.input.MemberSaveInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
+import com.recyclestudy.member.service.output.MemberNotificationTimeFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,18 +54,14 @@ public class MemberService {
     @Transactional(readOnly = true)
     public MemberFindOutput findAllMemberDevices(final MemberFindInput input) {
         final List<Device> devices = deviceRepository.findAllByMemberEmail(input.email());
-        final LocalTime notificationTime = findNotificationTime(input.email(), devices);
-        return MemberFindOutput.of(input.email(), notificationTime, devices);
+        return MemberFindOutput.of(input.email(), devices);
     }
 
-    @Nullable
-    private LocalTime findNotificationTime(final Email email, final List<Device> devices) {
-        if (devices.isEmpty()) {
-            return memberRepository.findByEmail(email)
-                    .map(Member::getNotificationTime)
-                    .orElse(null);
-        }
-        return devices.getFirst().getMember().getNotificationTime();
+    @Transactional(readOnly = true)
+    public MemberNotificationTimeFindOutput findNotificationTime(final DeviceIdentifier identifier) {
+        final Member member = memberRepository.findByIdentifier(identifier)
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+        return MemberNotificationTimeFindOutput.from(member.getNotificationTime());
     }
 
     @Transactional

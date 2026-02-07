@@ -15,6 +15,7 @@ import com.recyclestudy.member.service.input.MemberFindInput;
 import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.input.MemberSaveInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
+import com.recyclestudy.member.service.output.MemberNotificationTimeFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import java.time.Clock;
 import java.time.Instant;
@@ -239,6 +240,55 @@ class MemberServiceTest {
 
         // then
         verify(deviceRepository).deleteByIdentifier(targetDeviceIdentifier);
+    }
+
+    @Test
+    @DisplayName("디바이스 식별자로 멤버의 알림 시간을 조회한다")
+    void findNotificationTime() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final LocalTime expectedTime = LocalTime.of(9, 0);
+        member.updateNotificationTime(expectedTime);
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
+
+        // when
+        final MemberNotificationTimeFindOutput actual = memberService.findNotificationTime(identifier);
+
+        // then
+        assertThat(actual.notificationTime()).isEqualTo(expectedTime);
+    }
+
+    @Test
+    @DisplayName("알림 시간을 설정하지 않은 멤버 조회 시 null을 반환한다")
+    void findNotificationTime_NullNotificationTime() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
+
+        // when
+        final MemberNotificationTimeFindOutput actual = memberService.findNotificationTime(identifier);
+
+        // then
+        assertThat(actual.notificationTime()).isNull();
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 디바이스로 알림 시간 조회 시 예외를 던진다")
+    void findNotificationTime_UnauthorizedDevice() {
+        // given
+        final DeviceIdentifier identifier = DeviceIdentifier.from("invalid-id");
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.empty());
+
+        // when
+        // then
+        assertThatThrownBy(() -> memberService.findNotificationTime(identifier))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("유효하지 않은 디바이스입니다");
     }
 
     @Test
