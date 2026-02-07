@@ -6,7 +6,6 @@ import com.recyclestudy.review.service.ReviewCycleService;
 import com.recyclestudy.review.service.output.ReviewSendOutput;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -18,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
