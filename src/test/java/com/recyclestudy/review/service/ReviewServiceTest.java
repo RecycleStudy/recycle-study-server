@@ -115,39 +115,6 @@ class ReviewServiceTest {
     }
 
     @Test
-    @DisplayName("cycle이 null이면 기본 주기(EBBINGHAUS)를 사용한다")
-    void saveReview_withNullCycle_usesDefaultCycle() {
-        // given
-        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
-        final String urlValue = "https://test.com";
-        final ReviewSaveInput input = ReviewSaveInput.of(identifier, urlValue, null);
-
-        final Email email = Email.from("test@test.com");
-        final Member member = Member.withoutId(email);
-        final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
-        final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
-
-        final List<Duration> durations = List.of(Duration.ofDays(1));
-        final DefaultCycleSelection defaultCycle = new DefaultCycleSelection("EBBINGHAUS");
-
-        given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
-        given(cycleSelectionResolverRegistry.resolve(defaultCycle)).willReturn(durations);
-        given(reviewRepository.save(any(Review.class))).willReturn(review);
-        given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
-
-        // when
-        final ReviewSaveOutput actual = reviewService.saveReview(input);
-
-        // then
-        assertSoftly(softAssertions -> {
-            softAssertions.assertThat(actual.url()).isEqualTo(ReviewURL.from(urlValue));
-            softAssertions.assertThat(actual.scheduledAts()).hasSize(1);
-        });
-
-        verify(cycleSelectionResolverRegistry).resolve(defaultCycle);
-    }
-
-    @Test
     @DisplayName("존재하지 않는 디바이스 아이디일 경우 예외를 던진다")
     void saveReview_fail_notFoundDevice() {
         // given

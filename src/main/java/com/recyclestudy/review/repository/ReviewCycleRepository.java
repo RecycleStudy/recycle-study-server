@@ -1,6 +1,5 @@
 package com.recyclestudy.review.repository;
 
-import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewCycle;
 import java.time.LocalDateTime;
 import java.util.List;

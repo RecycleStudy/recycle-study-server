@@ -2,7 +2,6 @@ package com.recyclestudy.review.service;
 
 import com.recyclestudy.common.BaseEntity;
 import com.recyclestudy.cycle.domain.selection.CycleSelection;
-import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
 import com.recyclestudy.cycle.service.resolver.CycleSelectionResolverRegistry;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.Member;
@@ -66,8 +65,7 @@ public class ReviewService {
     }
 
     private List<LocalDateTime> calculateScheduledAts(final CycleSelection cycleSelection, final Member member) {
-        final CycleSelection resolvedCycle = resolveDefaultCycleIfNull(cycleSelection);
-        final List<Duration> durations = cycleSelectionResolverRegistry.resolve(resolvedCycle);
+        final List<Duration> durations = cycleSelectionResolverRegistry.resolve(cycleSelection);
         final LocalDateTime baseTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
 
         return durations.stream()
@@ -75,23 +73,20 @@ public class ReviewService {
                 .toList();
     }
 
-    private LocalDateTime calculateScheduledAt(final LocalDateTime baseTime, final Duration duration, final Member member) {
+    private LocalDateTime calculateScheduledAt(
+            final LocalDateTime baseTime,
+            final Duration duration,
+            final Member member
+    ) {
         final LocalDateTime scheduledAt = baseTime.plus(duration);
         if (duration.toDays() < 1 || member.getNotificationTime() == null) {
             return scheduledAt;
         }
-        final LocalDateTime adjustedTime = scheduledAt.with(member.getNotificationTime()).truncatedTo(ChronoUnit.MINUTES);
+        final LocalDateTime adjustedTime = scheduledAt.with(member.getNotificationTime())
+                .truncatedTo(ChronoUnit.MINUTES);
         log.info("[REVIEW_SCHEDULE_ADJUSTED] 복습 주기 시간 조정: original={}, adjusted={}, memberId={}",
                 scheduledAt, adjustedTime, member.getId());
         return adjustedTime;
-    }
-
-    @Deprecated // 프론트 마이그레이션 완료 후 제거 예정
-    private CycleSelection resolveDefaultCycleIfNull(final CycleSelection cycleSelection) {
-        if (cycleSelection != null) {
-            return cycleSelection;
-        }
-        return new DefaultCycleSelection("EBBINGHAUS");
     }
 
     private void savePendingNotificationHistory(final List<ReviewCycle> savedReviewCycles) {

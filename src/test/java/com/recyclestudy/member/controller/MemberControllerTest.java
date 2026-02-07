@@ -491,7 +491,8 @@ class MemberControllerTest extends APIBaseTest {
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
-                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING).description("알림 시간 (HH:mm:ss)")
+                                        fieldWithPath("notificationTime").type(JsonFieldType.STRING)
+                                                .description("알림 시간 (HH:mm:ss)")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
