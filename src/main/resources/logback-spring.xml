@@ -21,7 +21,7 @@
         </root>
     </springProfile>
 
-    <springProfile name="prod | dev">
+    <springProfile name="prod | dev | perftest">
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${LOG_PATH}/app.log</file>
             <encoder>

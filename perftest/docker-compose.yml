@@ -1,0 +1,100 @@
+services:
+  app:
+    container_name: perftest-app
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: perftest
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=50.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+    depends_on:
+      mysql:
+        condition: service_healthy
+      toxiproxy:
+        condition: service_started
+    networks:
+      - perftest
+
+  mysql:
+    container_name: perftest-mysql
+    image: mysql:8.4
+    ports:
+      - "33307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: perftest
+      MYSQL_DATABASE: recycle_study
+      MYSQL_USER: perftest
+      MYSQL_PASSWORD: perftest
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - perftest-mysql:/var/lib/mysql
+    networks:
+      - perftest
+
+  mailpit:
+    container_name: perftest-mailpit
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+    networks:
+      - perftest
+
+  toxiproxy:
+    container_name: perftest-toxiproxy
+    image: ghcr.io/shopify/toxiproxy:latest
+    ports:
+      - "8474:8474"
+      - "25025:25025"
+    volumes:
+      - ./toxiproxy.json:/config/toxiproxy.json
+    command: [ "-config", "/config/toxiproxy.json", "-host", "0.0.0.0" ]
+    depends_on:
+      - mailpit
+    networks:
+      - perftest
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    volumes:
+      - ../alloy/config.alloy:/etc/alloy/config.alloy
+      - app_log:/app/log
+    command:
+      - "run"
+      - "--server.http.listen-addr=0.0.0.0:12345"
+      - "--storage.path=/var/lib/alloy"
+      - "--stability.level=experimental"
+      - "/etc/alloy/config.alloy"
+    ports:
+      - "12345:12345" # Alloy UI
+      - "14317:4317"   # OTLP gRPC
+    networks:
+      - perftest
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    networks:
+      - perftest
+
+volumes:
+  perftest-mysql:
+  app_log:
+
+networks:
+  perftest:

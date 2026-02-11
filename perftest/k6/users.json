@@ -1,0 +1,22 @@
+[
+  {
+    "email": "perftest_1@test.com",
+    "deviceId": "perftest_device_1"
+  },
+  {
+    "email": "perftest_2@test.com",
+    "deviceId": "perftest_device_2"
+  },
+  {
+    "email": "perftest_3@test.com",
+    "deviceId": "perftest_device_3"
+  },
+  {
+    "email": "perftest_4@test.com",
+    "deviceId": "perftest_device_4"
+  },
+  {
+    "email": "perftest_5@test.com",
+    "deviceId": "perftest_device_5"
+  }
+]
