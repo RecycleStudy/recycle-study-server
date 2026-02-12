@@ -34,7 +34,7 @@ public class DelayEmailSender extends EmailSender {
         try {
             final long actualDelay = delayMs + ThreadLocalRandom.current().nextLong(-jitterMs, jitterMs + 1);
             Thread.sleep(actualDelay);
-            log.info("[MAIL_SENT] 메일 발송 성공 (delay={}ms): email={}", actualDelay, targetEmail.toMaskedValue());
+            log.info("[MAIL_SENT] 메일 발송 성공 (delay={}ms, threadId={}): email={}", actualDelay, Thread.currentThread().getId(), targetEmail.toMaskedValue());
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new EmailSendException("메일 전송 시뮬레이션 중 인터럽트 발생", e);

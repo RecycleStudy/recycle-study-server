@@ -4,7 +4,7 @@
 
     <property name="LOG_PATH" value="/app/log"/>
     <property name="CONSOLE_LOG_PATTERN"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{traceId:-NO_TRACE_ID})] %magenta(%-40.40logger{39}) : %msg%n"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{traceId:-NO_TRACE_ID})] [%thread] %magenta(%-40.40logger{39}) : %msg%n"/>
     <property name="FILE_LOG_PATTERN"
               value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] %-40.40logger{39} : %msg%n"/>
 

@@ -19,7 +19,7 @@ spring:
   task:
     execution:
       pool:
-        core-size: 27
+        core-size: 8
 
   jpa:
     properties:
@@ -28,6 +28,24 @@ spring:
         show_sql: false
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+  tracing:
+    sampling:
+      probability: 1.0
+
   otlp:
     tracing:
       endpoint: http://host.docker.internal:4317

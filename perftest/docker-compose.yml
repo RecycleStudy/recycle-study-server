@@ -9,6 +9,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: perftest
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=50.0"
+    volumes:
+      - app_log:/app/log
     deploy:
       resources:
         limits:

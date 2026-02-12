@@ -1,0 +1,232 @@
+{
+  "timestamp": "2026-02-12T00:22:24.598302",
+  "config": {
+    "iterations": 5,
+    "counts": [
+      50,
+      200,
+      500
+    ]
+  },
+  "theory": 2.5292,
+  "results": {
+    "50": [
+      {
+        "count": 50,
+        "duration": 22.43,
+        "throughput": 2.2297,
+        "avg_delay": 3146.6,
+        "min_delay": 2912,
+        "max_delay": 3419,
+        "threads": 8,
+        "submit_ts": "23:19:52.035",
+        "first_ts": "23:19:55.436",
+        "last_ts": "23:20:14.460"
+      },
+      {
+        "count": 50,
+        "duration": 19.91,
+        "throughput": 2.5108,
+        "avg_delay": 3148.0,
+        "min_delay": 2928,
+        "max_delay": 3412,
+        "threads": 8,
+        "submit_ts": "23:22:54.777",
+        "first_ts": "23:22:58.159",
+        "last_ts": "23:23:14.691"
+      },
+      {
+        "count": 50,
+        "duration": 19.99,
+        "throughput": 2.5019,
+        "avg_delay": 3172.8,
+        "min_delay": 2908,
+        "max_delay": 3406,
+        "threads": 8,
+        "submit_ts": "23:25:54.843",
+        "first_ts": "23:25:58.295",
+        "last_ts": "23:26:14.828"
+      },
+      {
+        "count": 50,
+        "duration": 19.64,
+        "throughput": 2.5457,
+        "avg_delay": 3181.5,
+        "min_delay": 2915,
+        "max_delay": 3417,
+        "threads": 8,
+        "submit_ts": "23:28:54.762",
+        "first_ts": "23:28:59.971",
+        "last_ts": "23:29:14.403"
+      },
+      {
+        "count": 50,
+        "duration": 19.38,
+        "throughput": 2.5793,
+        "avg_delay": 3132.4,
+        "min_delay": 2908,
+        "max_delay": 3412,
+        "threads": 8,
+        "submit_ts": "23:31:54.788",
+        "first_ts": "23:31:58.123",
+        "last_ts": "23:32:14.173"
+      }
+    ],
+    "200": [
+      {
+        "count": 200,
+        "duration": 76.12,
+        "throughput": 2.6273,
+        "avg_delay": 3170.0,
+        "min_delay": 2906,
+        "max_delay": 3416,
+        "threads": 8,
+        "submit_ts": "23:34:52.402",
+        "first_ts": "23:34:55.786",
+        "last_ts": "23:36:08.525"
+      },
+      {
+        "count": 200,
+        "duration": 78.52,
+        "throughput": 2.5471,
+        "avg_delay": 3174.3,
+        "min_delay": 2912,
+        "max_delay": 3418,
+        "threads": 8,
+        "submit_ts": "23:38:58.674",
+        "first_ts": "23:39:02.092",
+        "last_ts": "23:40:17.194"
+      },
+      {
+        "count": 200,
+        "duration": 80.03,
+        "throughput": 2.4991,
+        "avg_delay": 3173.9,
+        "min_delay": 2906,
+        "max_delay": 3417,
+        "threads": 8,
+        "submit_ts": "23:42:58.354",
+        "first_ts": "23:43:01.773",
+        "last_ts": "23:44:18.384"
+      },
+      {
+        "count": 200,
+        "duration": 80.56,
+        "throughput": 2.4825,
+        "avg_delay": 3167.3,
+        "min_delay": 2908,
+        "max_delay": 3420,
+        "threads": 8,
+        "submit_ts": "23:46:59.871",
+        "first_ts": "23:47:03.354",
+        "last_ts": "23:48:20.434"
+      },
+      {
+        "count": 200,
+        "duration": 81.09,
+        "throughput": 2.4665,
+        "avg_delay": 3168.6,
+        "min_delay": 2907,
+        "max_delay": 3420,
+        "threads": 8,
+        "submit_ts": "23:51:00.299",
+        "first_ts": "23:51:03.749",
+        "last_ts": "23:52:21.387"
+      }
+    ],
+    "500": [
+      {
+        "count": 500,
+        "duration": 201.11,
+        "throughput": 2.4863,
+        "avg_delay": 3163.2,
+        "min_delay": 2906,
+        "max_delay": 3420,
+        "threads": 8,
+        "submit_ts": "23:55:01.006",
+        "first_ts": "23:55:04.394",
+        "last_ts": "23:58:22.112"
+      },
+      {
+        "count": 500,
+        "duration": 201.09,
+        "throughput": 2.4864,
+        "avg_delay": 3168.6,
+        "min_delay": 2907,
+        "max_delay": 3420,
+        "threads": 8,
+        "submit_ts": "00:01:00.994",
+        "first_ts": "00:01:04.338",
+        "last_ts": "00:04:22.088"
+      },
+      {
+        "count": 500,
+        "duration": 200.07,
+        "throughput": 2.4991,
+        "avg_delay": 3158.2,
+        "min_delay": 2906,
+        "max_delay": 3419,
+        "threads": 8,
+        "submit_ts": "00:07:01.045",
+        "first_ts": "00:07:04.360",
+        "last_ts": "00:10:21.118"
+      },
+      {
+        "count": 500,
+        "duration": 200.06,
+        "throughput": 2.4992,
+        "avg_delay": 3161.4,
+        "min_delay": 2906,
+        "max_delay": 3420,
+        "threads": 8,
+        "submit_ts": "00:13:01.145",
+        "first_ts": "00:13:04.747",
+        "last_ts": "00:16:21.208"
+      },
+      {
+        "count": 500,
+        "duration": 200.59,
+        "throughput": 2.4926,
+        "avg_delay": 3157.0,
+        "min_delay": 2906,
+        "max_delay": 3419,
+        "threads": 8,
+        "submit_ts": "00:19:01.099",
+        "first_ts": "00:19:04.414",
+        "last_ts": "00:22:21.690"
+      }
+    ]
+  },
+  "summary": {
+    "50": {
+      "n": 5,
+      "tp_mean": 2.473,
+      "tp_stdev": 0.14,
+      "tp_min": 2.23,
+      "tp_max": 2.579,
+      "dur_mean": 20.3,
+      "delay_mean": 3156.3,
+      "diff_pct": -2.2
+    },
+    "200": {
+      "n": 5,
+      "tp_mean": 2.524,
+      "tp_stdev": 0.065,
+      "tp_min": 2.466,
+      "tp_max": 2.627,
+      "dur_mean": 79.3,
+      "delay_mean": 3170.8,
+      "diff_pct": -0.2
+    },
+    "500": {
+      "n": 5,
+      "tp_mean": 2.493,
+      "tp_stdev": 0.006,
+      "tp_min": 2.486,
+      "tp_max": 2.499,
+      "dur_mean": 200.6,
+      "delay_mean": 3161.7,
+      "diff_pct": -1.4
+    }
+  }
+}
