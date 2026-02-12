@@ -22,7 +22,7 @@ public class SingleReviewEmailSender {
     private final TemplateEngine templateEngine;
     private final NotificationHistoryService notificationHistoryService;
 
-    @Async
+    @Async("reviewEmailExecutor")
     public void sendOne(final ReviewSendElement element) {
         final String message = createMessage(element.targetUrls());
         final Email targetEmail = element.email();

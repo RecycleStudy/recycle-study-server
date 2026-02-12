@@ -21,7 +21,7 @@ public class DeviceAuthEmailSender {
     @Value("${auth.base-url}")
     private String baseUrl;
 
-    @Async
+    @Async("authEmailExecutor")
     public void sendDeviceAuthMail(final Email email, final DeviceIdentifier deviceIdentifier) {
         final String authUrl = createAuthUrl(email, deviceIdentifier);
         final String message = createMessage(authUrl);

@@ -5,6 +5,7 @@ import com.recyclestudy.member.domain.Email;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Profile("perftest")
 @Primary
+@ConditionalOnProperty(name = "perftest.email.delay-enabled", havingValue = "true", matchIfMissing = true)
 public class DelayEmailSender extends EmailSender {
 
     private final long delayMs;
