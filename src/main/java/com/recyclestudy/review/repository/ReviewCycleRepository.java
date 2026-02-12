@@ -9,7 +9,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> {
 
-    List<ReviewCycle> findAllByScheduledAt(LocalDateTime scheduledAt);
+    @Query("""
+            SELECT rc FROM ReviewCycle rc
+            JOIN FETCH rc.review r
+            JOIN FETCH r.member
+            WHERE rc.scheduledAt = :scheduledAt
+            """)
+    List<ReviewCycle> findAllByScheduledAt(@Param("scheduledAt") LocalDateTime scheduledAt);
 
     @Query("""
             SELECT rc FROM ReviewCycle rc
