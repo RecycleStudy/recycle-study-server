@@ -1,0 +1,1 @@
+CREATE INDEX idx_review_cycle_scheduled_at ON review_cycle (scheduled_at);
