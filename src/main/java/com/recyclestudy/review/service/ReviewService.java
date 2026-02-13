@@ -1,8 +1,12 @@
 package com.recyclestudy.review.service;
 
 import com.recyclestudy.common.BaseEntity;
+import com.recyclestudy.cycle.domain.CycleOption;
+import com.recyclestudy.cycle.domain.selection.CustomCycleSelection;
 import com.recyclestudy.cycle.domain.selection.CycleSelection;
+import com.recyclestudy.cycle.repository.CycleOptionRepository;
 import com.recyclestudy.cycle.service.resolver.CycleSelectionResolverRegistry;
+import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.Member;
 import com.recyclestudy.member.repository.MemberRepository;
@@ -33,6 +37,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final ReviewCycleRepository reviewCycleRepository;
     private final MemberRepository memberRepository;
+    private final CycleOptionRepository cycleOptionRepository;
     private final CycleSelectionResolverRegistry cycleSelectionResolverRegistry;
     private final NotificationHistoryRepository notificationHistoryRepository;
     private final Clock clock;
@@ -46,6 +51,7 @@ public class ReviewService {
         final Review savedReview = reviewRepository.save(review);
         log.info("[REVIEW_SAVED] 복습 주제 저장 성공: reviewId={}", savedReview.getId());
 
+        validateCycleSelectionOwnership(input.cycle(), member);
         final List<LocalDateTime> scheduledAts = calculateScheduledAts(input.cycle(), member);
 
         final List<ReviewCycle> reviewCycles = scheduledAts.stream()
@@ -97,5 +103,18 @@ public class ReviewService {
                 = notificationHistoryRepository.saveAll(notificationHistories);
         log.info("[NOTIFY_HIST_SAVED] 전송 현황 등록 성공: status={}, notificationHistoryId={}",
                 NotificationStatus.PENDING, savedNotificationHistories.stream().map(BaseEntity::getId).toList());
+    }
+
+    private void validateCycleSelectionOwnership(final CycleSelection cycleSelection, final Member member) {
+        if (!(cycleSelection instanceof CustomCycleSelection(Long id))) {
+            return;
+        }
+
+        final CycleOption cycleOption = cycleOptionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 복습 주기입니다"));
+
+        if (!cycleOption.isOwner(member)) {
+            throw new NotFoundException("존재하지 않는 복습 주기입니다");
+        }
     }
 }
