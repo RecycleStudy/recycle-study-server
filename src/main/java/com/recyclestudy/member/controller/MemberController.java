@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -46,12 +45,8 @@ public class MemberController {
     }
 
     @GetMapping
-    public ResponseEntity<MemberFindResponse> findAllMemberDevices(
-            @RequestParam(name = "email") final String email,
-            @AuthDevice final DeviceIdentifier identifier
-    ) {
-
-        final MemberFindInput input = MemberFindInput.from(email, identifier);
+    public ResponseEntity<MemberFindResponse> findAllMemberDevices(@AuthDevice final DeviceIdentifier identifier) {
+        final MemberFindInput input = MemberFindInput.from(identifier);
         final MemberFindOutput output = memberService.findAllMemberDevices(input);
         final MemberFindResponse response = MemberFindResponse.from(output);
         return ResponseEntity.ok(response);

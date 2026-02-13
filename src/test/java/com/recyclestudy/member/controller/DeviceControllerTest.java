@@ -59,7 +59,7 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("디바이스 인증 성공 시 200 응답을 반환한다")
+    @DisplayName("디바이스 인증에 성공하면 200 OK와 함께 인증 성공 뷰를 반환한다")
     void authenticateDevice_Success() {
         // given
         final String email = "test@test.com";
@@ -75,7 +75,7 @@ class DeviceControllerTest extends APIBaseTest {
                                 builder()
                                         .tag("Device")
                                         .summary("디바이스 인증")
-                                        .description("디바이스 인증 성공 시 인증 완료 안내 HTML 페이지를 반환합니다.")
+                                        .description("디바이스 인증에 성공하면 인증 성공 뷰(auth_success.html)를 반환한다")
                                         .queryParameters(
                                                 parameterWithName("email").description("이메일"),
                                                 parameterWithName("identifier").description("디바이스 식별자")
@@ -103,13 +103,13 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("이미 인증된 디바이스 인증 시도 시 400 응답을 반환한다")
+    @DisplayName("이미 인증된 디바이스를 인증하려고 하면 400 Bad Request를 반환한다")
     void authenticateDevice_AlreadyAuthenticated() {
         // given
         final String email = "test@test.com";
         final String identifier = "device-identifier";
 
-        doThrow(new BadRequestException("이미 인증되었습니다"))
+        doThrow(new BadRequestException("이미 인증된 디바이스입니다"))
                 .when(memberService).authenticateDevice(any(Email.class), any(DeviceIdentifier.class));
 
         // when
@@ -119,7 +119,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("이미 인증된 디바이스 인증 시도 시 400 응답을 반환한다")
+                                .description("이미 인증된 디바이스를 인증하려고 하면 400 Bad Request를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -134,11 +134,11 @@ class DeviceControllerTest extends APIBaseTest {
                 .get("/api/v1/device/auth")
                 .then()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
-                .body("message", equalTo("이미 인증되었습니다"));
+                .body("message", equalTo("이미 인증된 디바이스입니다"));
     }
 
     @Test
-    @DisplayName("인증 시 유효하지 않은 이메일 형식인 경우 400 응답을 반환한다")
+    @DisplayName("인증 요청 시 이메일 형식이 올바르지 않으면 400 Bad Request를 반환한다")
     void authenticateDevice_InvalidEmailFormat() {
         // given
         final String invalidEmail = "invalid-email";
@@ -151,7 +151,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("유효하지 않은 이메일 형식인 경우 400 응답을 반환한다")
+                                .description("인증 요청 시 이메일 형식이 올바르지 않으면 400 Bad Request를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -170,13 +170,13 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("인증 유효 시간이 만료된 경우 400 응답을 반환한다")
+    @DisplayName("인증 유효 시간이 만료된 경우 400 Bad Request를 반환한다")
     void authenticateDevice_Expired() {
         // given
         final String email = "test@test.com";
         final String identifier = "device-identifier";
 
-        doThrow(new DeviceActivationExpiredException("인증 유효 시간이 만료되었습니다."))
+        doThrow(new DeviceActivationExpiredException("인증 유효 시간이 만료되었습니다"))
                 .when(memberService).authenticateDevice(any(Email.class), any(DeviceIdentifier.class));
 
         // when
@@ -186,7 +186,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("인증 유효 시간이 만료된 경우 400 응답을 반환한다")
+                                .description("인증 유효 시간이 만료된 경우 400 Bad Request를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -201,11 +201,11 @@ class DeviceControllerTest extends APIBaseTest {
                 .get("/api/v1/device/auth")
                 .then()
                 .statusCode(HttpStatus.BAD_REQUEST.value())
-                .body("message", equalTo("인증 유효 시간이 만료되었습니다."));
+                .body("message", equalTo("인증 유효 시간이 만료되었습니다"));
     }
 
     @Test
-    @DisplayName("디바이스 삭제 시 204 응답을 반환한다")
+    @DisplayName("디바이스를 삭제하면 204 No Content를 반환한다")
     void deleteDevice() {
         // given
         final String headerIdentifier = "device-id";
@@ -220,12 +220,13 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 삭제")
-                                .description("디바이스 삭제 시 204 응답을 반환한다")
+                                .description("디바이스를 삭제하면 204 No Content를 반환한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("email").type(JsonFieldType.STRING)
+                                                .description("이메일 (서버 인증 로직에서 사용되지 않음)").optional(),
                                         fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
                                 )
@@ -240,7 +241,7 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 멤버의 이메일로 인증 시도 시 404 응답을 반환한다")
+    @DisplayName("존재하지 않는 멤버의 디바이스를 인증하려고 하면 404 Not Found를 반환한다")
     void authenticateDevice_NotFoundMember() {
         // given
         final String email = "notfound@test.com";
@@ -256,7 +257,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("존재하지 않는 멤버의 이메일로 인증 시도 시 404 응답을 반환한다")
+                                .description("존재하지 않는 멤버의 디바이스를 인증하려고 하면 404 Not Found를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -275,13 +276,13 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 디바이스 식별자로 인증 시도 시 404 응답을 반환한다")
+    @DisplayName("존재하지 않는 디바이스 식별자로 인증하려고 하면 404 Not Found를 반환한다")
     void authenticateDevice_NotFoundDevice() {
         // given
         final String email = "test@test.com";
         final String identifier = "not-found-id";
 
-        doThrow(new NotFoundException("존재하지 않는 디바이스 아이디입니다"))
+        doThrow(new NotFoundException("존재하지 않는 디바이스 식별자입니다"))
                 .when(memberService).authenticateDevice(any(Email.class), any(DeviceIdentifier.class));
 
         // when
@@ -291,7 +292,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("존재하지 않는 디바이스 식별자로 인증 시도 시 404 응답을 반환한다")
+                                .description("존재하지 않는 디바이스 식별자로 인증하려고 하면 404 Not Found를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -306,11 +307,11 @@ class DeviceControllerTest extends APIBaseTest {
                 .get("/api/v1/device/auth")
                 .then()
                 .statusCode(HttpStatus.NOT_FOUND.value())
-                .body("message", equalTo("존재하지 않는 디바이스 아이디입니다"));
+                .body("message", equalTo("존재하지 않는 디바이스 식별자입니다"));
     }
 
     @Test
-    @DisplayName("디바이스 소유자가 아닌 이메일로 인증 시도 시 400 응답을 반환한다")
+    @DisplayName("디바이스 소유자가 아닌 회원이 인증하려고 하면 400 Bad Request를 반환한다")
     void authenticateDevice_NotOwner() {
         // given
         final String email = "other@test.com";
@@ -326,7 +327,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("디바이스 소유자가 아닌 이메일로 인증 시도 시 400 응답을 반환한다")
+                                .description("디바이스 소유자가 아닌 회원이 인증하려고 하면 400 Bad Request를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -345,7 +346,7 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("인증 시 이메일 파라미터가 누락된 경우 400 응답을 반환한다")
+    @DisplayName("인증 요청 시 이메일이 누락되면 400 Bad Request를 반환한다")
     void authenticateDevice_NullEmail() {
         // given
         final String identifier = "device-identifier";
@@ -357,7 +358,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("이메일 파라미터가 누락된 경우 400 응답을 반환한다")
+                                .description("인증 요청 시 이메일이 누락되면 400 Bad Request를 반환한다")
                                 .queryParameters(
                                         parameterWithName("identifier").description("디바이스 식별자")
                                 )
@@ -373,7 +374,7 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("인증 시 디바이스 식별자 파라미터가 누락된 경우 400 응답을 반환한다")
+    @DisplayName("인증 요청 시 디바이스 식별자가 누락되면 400 Bad Request를 반환한다")
     void authenticateDevice_NullIdentifier() {
         // given
         final String email = "test@test.com";
@@ -385,7 +386,7 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 인증")
-                                .description("디바이스 식별자 파라미터가 누락된 경우 400 응답을 반환한다")
+                                .description("인증 요청 시 디바이스 식별자가 누락되면 400 Bad Request를 반환한다")
                                 .queryParameters(
                                         parameterWithName("email").description("이메일"),
                                         parameterWithName("identifier").description("디바이스 식별자")
@@ -402,11 +403,12 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("삭제 요청 시 이메일이 누락된 경우 400 응답을 반환한다")
+    @DisplayName("디바이스 삭제 요청 시 이메일이 누락되어도 정상 처리된다 (Legacy compatibility)")
     void deleteDevice_NullEmail() {
         // given
         final String headerIdentifier = "device-id";
         final DeviceDeleteRequest request = new DeviceDeleteRequest(null, "target-id");
+        doNothing().when(memberService).deleteDevice(any());
 
         // when
         // then
@@ -415,17 +417,15 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 삭제")
-                                .description("삭제 요청 시 이메일이 누락된 경우 400 응답을 반환한다")
+                                .description("디바이스 삭제 요청 시 이메일이 누락되어도 서버 인증 로직에서 사용되지 않으므로 정상 처리된다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("email").type(JsonFieldType.STRING)
+                                                .description("이메일 (서버 인증 로직에서 사용되지 않음)").optional(),
                                         fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
-                                )
-                                .responseFields(
-                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -434,12 +434,11 @@ class DeviceControllerTest extends APIBaseTest {
                 .when()
                 .delete("/api/v1/device")
                 .then()
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .body("message", equalTo("null이 될 수 없습니다: value"));
+                .statusCode(HttpStatus.NO_CONTENT.value());
     }
 
     @Test
-    @DisplayName("삭제 요청 시 삭제할 디바이스 식별자가 누락된 경우 400 응답을 반환한다")
+    @DisplayName("디바이스 삭제 요청 시 대상 디바이스 식별자가 누락되면 400 Bad Request를 반환한다")
     void deleteDevice_NullTargetIdentifier() {
         // given
         final String headerIdentifier = "device-id";
@@ -452,12 +451,13 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 삭제")
-                                .description("삭제 요청 시 삭제할 디바이스 식별자가 누락된 경우 400 응답을 반환한다")
+                                .description("디바이스 삭제 요청 시 대상 디바이스 식별자가 누락되면 400 Bad Request를 반환한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
+                                        fieldWithPath("email").type(JsonFieldType.STRING)
+                                                .description("이메일 (서버 인증 로직에서 사용되지 않음)").optional(),
                                         fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
                                 )
@@ -476,7 +476,7 @@ class DeviceControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("헤더로 디바이스 인증하여 삭제 시 204 응답을 반환한다")
+    @DisplayName("헤더로 디바이스 인증 후 삭제하면 204 No Content를 반환한다")
     void deleteDevice_WithHeader() {
         // given
         final String headerIdentifier = "device-id";
@@ -491,13 +491,14 @@ class DeviceControllerTest extends APIBaseTest {
                         builder()
                                 .tag("Device")
                                 .summary("디바이스 삭제")
-                                .description("헤더로 디바이스 인증하여 삭제 시 204 응답을 반환한다")
+                                .description("헤더로 디바이스 인증 후 삭제하면 204 No Content를 반환한다")
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
                                 .requestFields(
-                                        fieldWithPath("email").type(JsonFieldType.STRING).description("이메일"),
-                                        fieldWithPath("targetIdentifier").type(JsonFieldType.STRING)
+                                        fieldWithPath("email").type(JsonFieldType.STRING)
+                                                .description("이메일 (서버 인증 로직에서 사용되지 않음)").optional(),
+                                        fieldWithPath("targetDeviceIdentifier").type(JsonFieldType.STRING)
                                                 .description("삭제할 디바이스 식별자")
                                 )
                 ))

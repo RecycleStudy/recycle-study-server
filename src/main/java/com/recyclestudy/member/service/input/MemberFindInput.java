@@ -1,12 +1,10 @@
 package com.recyclestudy.member.service.input;
 
 import com.recyclestudy.member.domain.DeviceIdentifier;
-import com.recyclestudy.member.domain.Email;
 
-public record MemberFindInput(Email email, DeviceIdentifier deviceIdentifier) {
+public record MemberFindInput(DeviceIdentifier deviceIdentifier) {
 
-    public static MemberFindInput from(final String emailValue, final DeviceIdentifier identifier) {
-        final Email email = Email.from(emailValue);
-        return new MemberFindInput(email, identifier);
+    public static MemberFindInput from(final DeviceIdentifier identifier) {
+        return new MemberFindInput(identifier);
     }
 }
