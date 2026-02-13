@@ -1,7 +1,11 @@
 package com.recyclestudy.review.service;
 
+import com.recyclestudy.cycle.domain.CycleOption;
+import com.recyclestudy.cycle.domain.selection.CustomCycleSelection;
 import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
+import com.recyclestudy.cycle.repository.CycleOptionRepository;
 import com.recyclestudy.cycle.service.resolver.CycleSelectionResolverRegistry;
+import com.recyclestudy.exception.NotFoundException;
 import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
@@ -41,6 +45,7 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,6 +59,9 @@ class ReviewServiceTest {
 
     @Mock
     MemberRepository memberRepository;
+
+    @Mock
+    CycleOptionRepository cycleOptionRepository;
 
     @Mock
     CycleSelectionResolverRegistry cycleSelectionResolverRegistry;
@@ -170,5 +178,82 @@ class ReviewServiceTest {
             softAssertions.assertThat(capturedCycles.get(1).getScheduledAt())
                     .isEqualTo(now.plusDays(1).with(preferredTime));
         });
+    }
+
+    @Test
+    @DisplayName("사용자가 소유한 커스텀 주기로 리뷰를 저장한다")
+    void saveReview_withCustomCycle_owner() {
+        // given
+        final long cycleOptionId = 1L;
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final CustomCycleSelection cycleSelection = new CustomCycleSelection(cycleOptionId);
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, "https://test.com", cycleSelection);
+
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Review review = Review.withoutId(member, input.url());
+        final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
+        final CycleOption cycleOption = mock(CycleOption.class);
+        final List<Duration> durations = List.of(Duration.ofDays(1));
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
+        given(reviewRepository.save(any(Review.class))).willReturn(review);
+        given(cycleOptionRepository.findById(cycleOptionId)).willReturn(Optional.of(cycleOption));
+        given(cycleOption.isOwner(member)).willReturn(true);
+        given(cycleSelectionResolverRegistry.resolve(cycleSelection)).willReturn(durations);
+        given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
+
+        // when
+        reviewService.saveReview(input);
+
+        // then
+        verify(cycleOptionRepository).findById(cycleOptionId);
+        verify(cycleOption).isOwner(member);
+        verify(cycleSelectionResolverRegistry).resolve(cycleSelection);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 커스텀 주기일 경우 예외를 던진다")
+    void saveReview_withCustomCycle_notFoundCycleOption() {
+        // given
+        final long cycleOptionId = 999L;
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final CustomCycleSelection cycleSelection = new CustomCycleSelection(cycleOptionId);
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, "https://test.com", cycleSelection);
+
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Review review = Review.withoutId(member, input.url());
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
+        given(reviewRepository.save(any(Review.class))).willReturn(review);
+        given(cycleOptionRepository.findById(cycleOptionId)).willReturn(Optional.empty());
+
+        // when
+        // then
+        assertThatThrownBy(() -> reviewService.saveReview(input))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("본인이 소유하지 않은 커스텀 주기일 경우 예외를 던진다")
+    void saveReview_withCustomCycle_notOwner() {
+        // given
+        final long cycleOptionId = 10L;
+        final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
+        final CustomCycleSelection cycleSelection = new CustomCycleSelection(cycleOptionId);
+        final ReviewSaveInput input = ReviewSaveInput.of(identifier, "https://test.com", cycleSelection);
+
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Review review = Review.withoutId(member, input.url());
+        final CycleOption cycleOption = mock(CycleOption.class);
+
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
+        given(reviewRepository.save(any(Review.class))).willReturn(review);
+        given(cycleOptionRepository.findById(cycleOptionId)).willReturn(Optional.of(cycleOption));
+        given(cycleOption.isOwner(member)).willReturn(false);
+
+        // when
+        // then
+        assertThatThrownBy(() -> reviewService.saveReview(input))
+                .isInstanceOf(NotFoundException.class);
     }
 }
