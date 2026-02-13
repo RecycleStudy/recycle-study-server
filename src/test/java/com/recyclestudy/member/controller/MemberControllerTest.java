@@ -200,7 +200,6 @@ class MemberControllerTest extends APIBaseTest {
     @DisplayName("인증되지 않은 디바이스로 조회 시 401 응답을 반환한다")
     void findAllMemberDevices_UnauthorizedDevice() {
         // given
-        final String email = "test@test.com";
         final String headerIdentifier = "unauthorized-id";
 
         given(memberService.findAllMemberDevices(any()))
@@ -217,50 +216,15 @@ class MemberControllerTest extends APIBaseTest {
                                 .requestHeaders(
                                         headerWithName("X-Device-Id").description("디바이스 식별자")
                                 )
-                                .queryParameters(
-                                        parameterWithName("email").description("이메일")
-                                )
                                 .responseFields(
                                         fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
-                                ),
-                        queryParameters(
-                                parameterWithName("email").description("이메일 (다음 버전에서 제거 예정)")
-                        )
+                                )
                 ))
                 .header("X-Device-Id", headerIdentifier)
-                .param("email", email)
-                .when()
                 .get("/api/v1/members")
                 .then()
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .body("message", equalTo("인증되지 않은 디바이스입니다"));
-    }
-
-    @Test
-    @DisplayName("조회 시 유효하지 않은 이메일 형식인 경우 400 응답을 반환한다")
-    void findAllMemberDevices_InvalidEmailFormat() {
-        // given
-        final String invalidEmail = "invalid-email";
-        final String headerIdentifier = "device-identifier";
-        final MemberFindOutput output = new MemberFindOutput(
-                Email.from("test@test.com"),
-                List.of(new MemberFindOutput.MemberFindElement(
-                        DeviceIdentifier.from(headerIdentifier),
-                        LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
-                ))
-        );
-        given(memberService.findAllMemberDevices(any())).willReturn(output);
-
-        // when
-        // then
-        given(this.spec)
-                .header("X-Device-Id", headerIdentifier)
-                .param("email", invalidEmail)
-                .when()
-                .get("/api/v1/members")
-                .then()
-                .statusCode(HttpStatus.OK.value())
-                .body("devices", hasSize(1));
     }
 
     @Test

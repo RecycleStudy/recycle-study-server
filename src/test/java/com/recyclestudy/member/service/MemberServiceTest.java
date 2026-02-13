@@ -204,7 +204,8 @@ class MemberServiceTest {
         // when
         // then
         assertThatThrownBy(() -> memberService.authenticateDevice(email, deviceIdentifier))
-                .isInstanceOf(NotFoundException.class);
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("존재하지 않는 디바이스 식별자입니다: %s".formatted(deviceIdentifier.getValue()));
     }
 
     @Test
@@ -223,7 +224,8 @@ class MemberServiceTest {
         // when
         // then
         assertThatThrownBy(() -> memberService.authenticateDevice(otherEmail, deviceIdentifier))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("이미 인증된 디바이스입니다");
     }
 
     @Test
@@ -270,7 +272,7 @@ class MemberServiceTest {
     }
 
     @Test
-    @DisplayName("throws when deleting with invalid requester device")
+    @DisplayName("요청 디바이스가 유효하지 않을 때 디바이스 삭제 시 예외를 던진다")
     void deleteDevice_unauthorized() {
         // given
         final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from("request-device");
