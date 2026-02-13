@@ -329,7 +329,7 @@ class MemberControllerTest extends APIBaseTest {
     }
 
     @Test
-    @DisplayName("이메일 파라미터가 누락된 경우 400 응답을 반환한다")
+    @DisplayName("이메일 파라미터가 누락되어도 200 응답을 반환한다")
     void findAllMemberDevices_NullEmail() {
         // given
         final String headerIdentifier = "device-identifier";
