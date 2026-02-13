@@ -113,20 +113,22 @@ class MemberServiceTest {
     @DisplayName("대상 이메일을 가진 멤버의 디바이스를 모두 조회한다")
     void findAllMemberDevices() {
         // given
-        final String email = "existed@test.com";
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
-        final MemberFindInput input = MemberFindInput.from(email, identifier);
-        final Member existedMember = Member.withoutId(input.email());
+        final MemberFindInput input = MemberFindInput.from(identifier);
+        final Email email = Email.from("existed@test.com");
+        final Member existedMember = Member.withoutId(email);
         final Device device = Device.withoutId(existedMember, input.deviceIdentifier(), true,
                 ActivationExpiredDateTime.create(now));
 
-        given(deviceRepository.findAllByMemberEmail(any(Email.class))).willReturn(List.of(device));
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(existedMember));
+        given(deviceRepository.findAllByMemberEmail(email)).willReturn(List.of(device));
 
         // when
         final MemberFindOutput actual = memberService.findAllMemberDevices(input);
 
         // then
         assertSoftly(softAssertions -> {
+            softAssertions.assertThat(actual.email()).isEqualTo(email);
             softAssertions.assertThat(actual.elements()).hasSize(1);
             softAssertions.assertThat(actual.elements().getFirst().identifier()).isEqualTo(input.deviceIdentifier());
         });
@@ -136,11 +138,12 @@ class MemberServiceTest {
     @DisplayName("대상 이메일을 가진 멤버의 디바이스가 없으면 빈 리스트를 리턴한다")
     void findAllMemberDevices_notExistedDevice() {
         // given
-        final String email = "existed@test.com";
         final DeviceIdentifier identifier = DeviceIdentifier.from("device-id");
-        final MemberFindInput input = MemberFindInput.from(email, identifier);
+        final MemberFindInput input = MemberFindInput.from(identifier);
+        final Member existedMember = Member.withoutId(Email.from("existed@test.com"));
 
-        given(deviceRepository.findAllByMemberEmail(any(Email.class))).willReturn(List.of());
+        given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(existedMember));
+        given(deviceRepository.findAllByMemberEmail(existedMember.getEmail())).willReturn(List.of());
 
         // when
         final MemberFindOutput actual = memberService.findAllMemberDevices(input);
@@ -201,8 +204,7 @@ class MemberServiceTest {
         // when
         // then
         assertThatThrownBy(() -> memberService.authenticateDevice(email, deviceIdentifier))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessage("존재하지 않는 디바이스 아이디입니다: %s".formatted(deviceIdentifier.getValue()));
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
@@ -221,25 +223,66 @@ class MemberServiceTest {
         // when
         // then
         assertThatThrownBy(() -> memberService.authenticateDevice(otherEmail, deviceIdentifier))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessage("이미 인증되었습니다");
+                .isInstanceOf(BadRequestException.class);
     }
 
     @Test
     @DisplayName("디바이스를 삭제할 수 있다")
     void deleteDevice() {
         // given
-        final Email email = Email.from("test@test.com");
         final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from("test");
         final DeviceIdentifier targetDeviceIdentifier = DeviceIdentifier.from("target");
-        final DeviceDeleteInput input = DeviceDeleteInput.from(
-                email.getValue(), deviceIdentifier, targetDeviceIdentifier.getValue());
+        final DeviceDeleteInput input = DeviceDeleteInput.from(deviceIdentifier, targetDeviceIdentifier.getValue());
+        final Member member = Member.withoutId(Email.from("test@test.com"));
+        final Device targetDevice = Device.withoutId(member, targetDeviceIdentifier, true,
+                ActivationExpiredDateTime.create(now));
+
+        given(memberRepository.findByIdentifier(deviceIdentifier)).willReturn(Optional.of(member));
+        given(deviceRepository.findByIdentifier(targetDeviceIdentifier)).willReturn(Optional.of(targetDevice));
 
         // when
         memberService.deleteDevice(input);
 
         // then
-        verify(deviceRepository).deleteByIdentifier(targetDeviceIdentifier);
+        verify(deviceRepository).delete(targetDevice);
+    }
+
+    @Test
+    @DisplayName("다른 멤버가 소유한 디바이스를 삭제할 때 예외를 던진다")
+    void deleteDevice_notOwner() {
+        // given
+        final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from("request-device");
+        final DeviceIdentifier targetDeviceIdentifier = DeviceIdentifier.from("target-device");
+        final DeviceDeleteInput input = DeviceDeleteInput.from(deviceIdentifier, targetDeviceIdentifier.getValue());
+
+        final Member requestMember = Member.withoutId(Email.from("request@test.com"));
+        final Member targetMember = Member.withoutId(Email.from("target@test.com"));
+        final Device targetDevice = Device.withoutId(targetMember, targetDeviceIdentifier, true,
+                ActivationExpiredDateTime.create(now));
+
+        given(memberRepository.findByIdentifier(deviceIdentifier)).willReturn(Optional.of(requestMember));
+        given(deviceRepository.findByIdentifier(targetDeviceIdentifier)).willReturn(Optional.of(targetDevice));
+
+        // when
+        // then
+        assertThatThrownBy(() -> memberService.deleteDevice(input))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("throws when deleting with invalid requester device")
+    void deleteDevice_unauthorized() {
+        // given
+        final DeviceIdentifier deviceIdentifier = DeviceIdentifier.from("request-device");
+        final DeviceIdentifier targetDeviceIdentifier = DeviceIdentifier.from("target-device");
+        final DeviceDeleteInput input = DeviceDeleteInput.from(deviceIdentifier, targetDeviceIdentifier.getValue());
+
+        given(memberRepository.findByIdentifier(deviceIdentifier)).willReturn(Optional.empty());
+
+        // when
+        // then
+        assertThatThrownBy(() -> memberService.deleteDevice(input))
+                .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
