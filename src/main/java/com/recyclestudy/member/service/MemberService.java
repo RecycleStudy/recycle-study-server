@@ -2,6 +2,7 @@ package com.recyclestudy.member.service;
 
 import com.recyclestudy.exception.BadRequestException;
 import com.recyclestudy.exception.NotFoundException;
+import com.recyclestudy.exception.UnauthorizedException;
 import com.recyclestudy.member.domain.ActivationExpiredDateTime;
 import com.recyclestudy.member.domain.Device;
 import com.recyclestudy.member.domain.DeviceIdentifier;
@@ -11,11 +12,14 @@ import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.member.repository.MemberRepository;
 import com.recyclestudy.member.service.input.DeviceDeleteInput;
 import com.recyclestudy.member.service.input.MemberFindInput;
+import com.recyclestudy.member.service.input.MemberNotificationTimeUpdateInput;
 import com.recyclestudy.member.service.input.MemberSaveInput;
 import com.recyclestudy.member.service.output.MemberFindOutput;
+import com.recyclestudy.member.service.output.MemberNotificationTimeFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +53,18 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public MemberFindOutput findAllMemberDevices(final MemberFindInput input) {
-        final List<Device> devices = deviceRepository.findAllByMemberEmail(input.email());
-        return MemberFindOutput.of(input.email(), devices);
+        final Member member = memberRepository.findByIdentifier(input.deviceIdentifier())
+                .orElseThrow(() -> new UnauthorizedException("인증되지 않은 디바이스입니다"));
+
+        final List<Device> devices = deviceRepository.findAllByMemberEmail(member.getEmail());
+        return MemberFindOutput.of(member.getEmail(), devices);
+    }
+
+    @Transactional(readOnly = true)
+    public MemberNotificationTimeFindOutput findNotificationTime(final DeviceIdentifier identifier) {
+        final Member member = memberRepository.findByIdentifier(identifier)
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+        return MemberNotificationTimeFindOutput.from(member.getNotificationTime());
     }
 
     @Transactional
@@ -58,11 +72,11 @@ public class MemberService {
         checkExistedMember(email);
 
         final Device device = deviceRepository.findByIdentifier(deviceIdentifier)
-                .orElseThrow(() -> new NotFoundException("존재하지 않는 디바이스 아이디입니다: %s"
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 디바이스 식별자입니다: %s"
                         .formatted(deviceIdentifier.getValue())));
 
         if (device.isActive()) {
-            throw new BadRequestException("이미 인증되었습니다");
+            throw new BadRequestException("이미 인증된 디바이스입니다");
         }
 
         device.verifyOwner(email);
@@ -72,8 +86,30 @@ public class MemberService {
 
     @Transactional
     public void deleteDevice(final DeviceDeleteInput input) {
-        deviceRepository.deleteByIdentifier(input.targetDeviceIdentifier());
+        final Member requestMember = memberRepository.findByIdentifier(input.deviceIdentifier())
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+
+        final Device targetDevice = deviceRepository.findByIdentifier(input.targetDeviceIdentifier())
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 디바이스입니다: %s"
+                        .formatted(input.targetDeviceIdentifier().getValue())));
+
+        if (!targetDevice.getMember().hasEmail(requestMember.getEmail())) {
+            throw new NotFoundException("존재하지 않는 디바이스입니다: %s".formatted(input.targetDeviceIdentifier().getValue()));
+        }
+
+        deviceRepository.delete(targetDevice);
         log.info("[DEVICE_DELETED] 디바이스 삭제 성공: {}", input.targetDeviceIdentifier());
+    }
+
+    @Transactional
+    public void updateNotificationTime(final MemberNotificationTimeUpdateInput input) {
+        final Member member = memberRepository.findByIdentifier(input.identifier())
+                .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
+        final LocalTime previousNotificationTime = member.getNotificationTime();
+
+        member.updateNotificationTime(input.notificationTime());
+        log.info("[MEMBER_NOTI_TIME_UPDATED] 멤버 알림 시간 변경: memberId={}, from={}, to={}",
+                member.getId(), previousNotificationTime, input.notificationTime());
     }
 
     private Member saveNewMember(final Email email) {

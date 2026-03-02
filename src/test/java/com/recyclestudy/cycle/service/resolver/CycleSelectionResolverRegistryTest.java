@@ -1,7 +1,6 @@
 package com.recyclestudy.cycle.service.resolver;
 
 import com.recyclestudy.cycle.domain.DefaultCycleOption;
-import com.recyclestudy.cycle.domain.selection.CustomCycleSelection;
 import com.recyclestudy.cycle.domain.selection.CycleSelection;
 import com.recyclestudy.cycle.domain.selection.DefaultCycleSelection;
 import com.recyclestudy.cycle.repository.CycleOptionRepository;

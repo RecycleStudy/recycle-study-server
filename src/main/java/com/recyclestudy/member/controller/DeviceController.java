@@ -38,8 +38,7 @@ public class DeviceController {
             @AuthDevice final DeviceIdentifier identifier,
             @RequestBody final DeviceDeleteRequest request
     ) {
-        final DeviceDeleteInput input = DeviceDeleteInput.from(request.email(), identifier,
-                request.targetDeviceIdentifier());
+        final DeviceDeleteInput input = DeviceDeleteInput.from(identifier, request.targetDeviceIdentifier());
         memberService.deleteDevice(input);
         return ResponseEntity.noContent().build();
     }

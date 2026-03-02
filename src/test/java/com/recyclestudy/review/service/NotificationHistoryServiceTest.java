@@ -46,7 +46,7 @@ class NotificationHistoryServiceTest {
 
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
-        
+
         final LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         final ReviewCycle cycle1 = ReviewCycle.withoutId(review, now);
         final ReviewCycle cycle2 = ReviewCycle.withoutId(review, now.plusDays(1));
