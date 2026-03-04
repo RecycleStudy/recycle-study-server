@@ -24,11 +24,17 @@ public class NotificationHistoryService {
         if (reviewCycleIds.isEmpty()) {
             return;
         }
+
+        int updated;
         if (status == NotificationStatus.FAILED) {
-            notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
+            updated = notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
         } else {
-            notificationHistoryRepository.updateStatus(reviewCycleIds, status, now);
+            updated = notificationHistoryRepository.updateStatus(reviewCycleIds, status, now);
         }
+        if (updated != reviewCycleIds.size()) {
+            log.warn("[NOTIFY_HIST_MISMATCH] 기대={}, 실제={}", reviewCycleIds.size(), updated);
+        }
+
         log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, reviewCycleIds.size());
     }
 }
