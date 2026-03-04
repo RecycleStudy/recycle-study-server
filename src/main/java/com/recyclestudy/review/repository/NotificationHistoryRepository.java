@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface NotificationHistoryRepository extends JpaRepository<NotificationHistory, Long> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
             UPDATE NotificationHistory nh
             SET nh.status = :status, nh.lastAttemptedAt = :now
@@ -23,7 +23,7 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
             @Param("now") LocalDateTime now
     );
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("""
             UPDATE NotificationHistory nh
             SET nh.status = :status, nh.failCount = nh.failCount + 1, nh.lastAttemptedAt = :now
