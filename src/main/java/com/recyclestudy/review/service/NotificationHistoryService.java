@@ -21,19 +21,14 @@ public class NotificationHistoryService {
     @Transactional
     public void updateStatus(final List<Long> reviewCycleIds, final NotificationStatus status) {
         final LocalDateTime now = LocalDateTime.now(clock);
-        updateStatus(reviewCycleIds, status, now);
-        log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, reviewCycleIds.size());
-    }
-
-    private void updateStatus(
-            final List<Long> reviewCycleIds,
-            final NotificationStatus status,
-            final LocalDateTime now
-    ) {
-        if (status == NotificationStatus.FAILED) {
-            notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
+        if (reviewCycleIds.isEmpty()) {
             return;
         }
-        notificationHistoryRepository.updateStatus(reviewCycleIds, status, now);
+        if (status == NotificationStatus.FAILED) {
+            notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
+        } else {
+            notificationHistoryRepository.updateStatus(reviewCycleIds, status, now);
+        }
+        log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, reviewCycleIds.size());
     }
 }
