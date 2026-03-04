@@ -2,6 +2,7 @@ package com.recyclestudy.review.service;
 
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
+import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.Review;
 import com.recyclestudy.review.domain.ReviewCycle;
 import com.recyclestudy.review.domain.ReviewURL;
@@ -43,7 +44,7 @@ class ReviewCycleServiceTest {
         final Review review = Review.withoutId(member, ReviewURL.from("https://example.com/article"));
         final ReviewCycle reviewCycle = ReviewCycle.withoutId(review, scheduledAt);
 
-        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt)).willReturn(List.of(reviewCycle));
+        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt, NotificationStatus.PENDING)).willReturn(List.of(reviewCycle));
 
         // when
         final ReviewSendOutput result = reviewCycleService.findTargetReviewCycle(input);
@@ -53,7 +54,7 @@ class ReviewCycleServiceTest {
             softAssertions.assertThat(result.elements()).hasSize(1);
             softAssertions.assertThat(result.elements().getFirst().email()).isEqualTo(Email.from("user@test.com"));
         });
-        verify(reviewCycleRepository).findAllByScheduledAt(scheduledAt);
+        verify(reviewCycleRepository).findAllByScheduledAt(scheduledAt, NotificationStatus.PENDING);
     }
 
     @Test
@@ -63,7 +64,7 @@ class ReviewCycleServiceTest {
         final LocalDateTime scheduledAt = LocalDateTime.of(2025, 1, 1, 8, 0);
         final ReviewSendInput input = ReviewSendInput.from(scheduledAt);
 
-        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt)).willReturn(List.of());
+        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt, NotificationStatus.PENDING)).willReturn(List.of());
 
         // when
         final ReviewSendOutput result = reviewCycleService.findTargetReviewCycle(input);
@@ -85,7 +86,7 @@ class ReviewCycleServiceTest {
         final ReviewCycle cycle1 = ReviewCycle.withoutId(review1, scheduledAt);
         final ReviewCycle cycle2 = ReviewCycle.withoutId(review2, scheduledAt);
 
-        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt)).willReturn(List.of(cycle1, cycle2));
+        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt, NotificationStatus.PENDING)).willReturn(List.of(cycle1, cycle2));
 
         // when
         final ReviewSendOutput result = reviewCycleService.findTargetReviewCycle(input);
@@ -114,7 +115,7 @@ class ReviewCycleServiceTest {
         final ReviewCycle cycle1 = ReviewCycle.withoutId(review1, scheduledAt);
         final ReviewCycle cycle2 = ReviewCycle.withoutId(review2, scheduledAt);
 
-        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt)).willReturn(List.of(cycle1, cycle2));
+        given(reviewCycleRepository.findAllByScheduledAt(scheduledAt, NotificationStatus.PENDING)).willReturn(List.of(cycle1, cycle2));
 
         // when
         final ReviewSendOutput result = reviewCycleService.findTargetReviewCycle(input);
