@@ -20,11 +20,10 @@ public class NotificationHistoryService {
 
     @Transactional
     public void updateStatus(final List<Long> reviewCycleIds, final NotificationStatus status) {
-        final LocalDateTime now = LocalDateTime.now(clock);
         if (reviewCycleIds.isEmpty()) {
             return;
         }
-
+        final LocalDateTime now = LocalDateTime.now(clock);
         int updated;
         if (status == NotificationStatus.FAILED) {
             updated = notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
@@ -35,6 +34,6 @@ public class NotificationHistoryService {
             log.warn("[NOTIFY_HIST_MISMATCH] 기대={}, 실제={}", reviewCycleIds.size(), updated);
         }
 
-        log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, reviewCycleIds.size());
+        log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, updated);
     }
 }
