@@ -1,5 +1,6 @@
 package com.recyclestudy.review.repository;
 
+import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewCycle;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,17 +14,27 @@ public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> 
             SELECT rc FROM ReviewCycle rc
             JOIN FETCH rc.review r
             JOIN FETCH r.member
-            WHERE rc.scheduledAt = :scheduledAt
+            JOIN NotificationHistory nh ON rc.id = nh.reviewCycle.id
+            WHERE rc.scheduledAt <= :scheduledAt
+            AND nh.status = :status
             """)
-    List<ReviewCycle> findAllByScheduledAt(@Param("scheduledAt") LocalDateTime scheduledAt);
+    List<ReviewCycle> findAllByScheduledAt(
+            @Param("scheduledAt") LocalDateTime scheduledAt,
+            @Param("status") NotificationStatus status
+    );
 
     @Query("""
             SELECT rc FROM ReviewCycle rc
+            JOIN FETCH rc.review r
+            JOIN FETCH r.member
             JOIN NotificationHistory nh ON rc.id = nh.reviewCycle.id
-            GROUP BY rc
-            HAVING SUM(CASE WHEN nh.status = 'SENT' THEN 1 ELSE 0 END) = 0
-            AND SUM(CASE WHEN nh.status = 'FAILED' THEN 1 ELSE 0 END) > 0
-            AND SUM(CASE WHEN nh.status = 'FAILED' THEN 1 ELSE 0 END) < :maxRetryCount
+            WHERE nh.status = :status
+            AND nh.failCount < :maxRetryCount
+            AND rc.scheduledAt <= :cutoffDateTime
             """)
-    List<ReviewCycle> findAllRetryableCycles(@Param("maxRetryCount") long maxRetryCount);
+    List<ReviewCycle> findAllRetryableCycles(
+            @Param("status") NotificationStatus status,
+            @Param("maxRetryCount") int maxRetryCount,
+            @Param("cutoffDateTime") LocalDateTime cutoffDateTime
+    );
 }

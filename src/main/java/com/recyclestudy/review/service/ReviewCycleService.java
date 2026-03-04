@@ -1,5 +1,6 @@
 package com.recyclestudy.review.service;
 
+import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewCycle;
 import com.recyclestudy.review.repository.ReviewCycleRepository;
 import com.recyclestudy.review.service.input.ReviewSendInput;
@@ -17,7 +18,8 @@ public class ReviewCycleService {
 
     @Transactional(readOnly = true)
     public ReviewSendOutput findTargetReviewCycle(final ReviewSendInput input) {
-        final List<ReviewCycle> targetCycle = reviewCycleRepository.findAllByScheduledAt(input.scheduledAt());
+        final List<ReviewCycle> targetCycle = reviewCycleRepository.findAllByScheduledAt(
+                input.scheduledAt(), NotificationStatus.PENDING);
         return ReviewSendOutput.from(targetCycle);
     }
 }

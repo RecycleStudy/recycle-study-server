@@ -1,10 +1,13 @@
 package com.recyclestudy.email;
 
 import com.recyclestudy.member.domain.Member;
+import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewCycle;
 import com.recyclestudy.review.domain.ReviewURL;
 import com.recyclestudy.review.repository.ReviewCycleRepository;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,10 +25,13 @@ public class EmailRetryService {
 
     private final ReviewCycleRepository reviewCycleRepository;
     private final SingleReviewEmailSender singleReviewEmailSender;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public void retryFailedEmails() {
-        final List<ReviewCycle> failedCycles = reviewCycleRepository.findAllRetryableCycles(MAX_RETRY_COUNT);
+        final LocalDateTime cutoffDateTime = LocalDateTime.now(clock).minusDays(1);
+        final List<ReviewCycle> failedCycles = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, MAX_RETRY_COUNT, cutoffDateTime);
 
         if (failedCycles.isEmpty()) {
             return;
