@@ -39,7 +39,7 @@ public class ReviewCycleService {
                 .orElseThrow(() -> new UnauthorizedException("유효하지 않은 디바이스입니다"));
 
         final List<NotificationHistory> allPending = notificationHistoryRepository
-                .findAllPendingByMember(member.getId(), NotificationStatus.PENDING);
+                .findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING);
 
         if (allPending.isEmpty()) {
             return NextReviewOutput.empty();

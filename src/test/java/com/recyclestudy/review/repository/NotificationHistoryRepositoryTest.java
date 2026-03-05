@@ -38,7 +38,7 @@ class NotificationHistoryRepositoryTest {
 
     @Test
     @DisplayName("본인의 PENDING NotificationHistory가 scheduledAt ASC 순으로 반환된다")
-    void findAllPendingByMember_pendingAscOrder() {
+    void findAllPendingByMember_AscOrderAndStatus() {
         // given
         final Member member = saveMember("user@test.com");
         saveNh(member, T2, NotificationStatus.PENDING);
@@ -46,7 +46,7 @@ class NotificationHistoryRepositoryTest {
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
-                .findAllPendingByMember(member.getId(), NotificationStatus.PENDING);
+                .findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING);
 
         // then
         assertSoftly(softly -> {
@@ -58,7 +58,7 @@ class NotificationHistoryRepositoryTest {
 
     @Test
     @DisplayName("타 멤버의 NotificationHistory는 포함되지 않는다")
-    void findAllPendingByMember_excludesOtherMembers() {
+    void findAllByMember_AndStatus_excludesOtherMembers() {
         // given
         final Member member = saveMember("user@test.com");
         final Member other = saveMember("other@test.com");
@@ -67,7 +67,7 @@ class NotificationHistoryRepositoryTest {
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
-                .findAllPendingByMember(member.getId(), NotificationStatus.PENDING);
+                .findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING);
 
         // then
         assertThat(result).hasSize(1);
@@ -76,7 +76,7 @@ class NotificationHistoryRepositoryTest {
 
     @Test
     @DisplayName("SENT/FAILED 상태는 조회에서 제외된다")
-    void findAllPendingByMember_excludesNonPending() {
+    void findAllPendingByMember_excludesNonAndStatus() {
         // given
         final Member member = saveMember("user@test.com");
         saveNh(member, T1, NotificationStatus.SENT);
@@ -84,7 +84,7 @@ class NotificationHistoryRepositoryTest {
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
-                .findAllPendingByMember(member.getId(), NotificationStatus.PENDING);
+                .findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING);
 
         // then
         assertThat(result).isEmpty();
@@ -92,13 +92,13 @@ class NotificationHistoryRepositoryTest {
 
     @Test
     @DisplayName("NotificationHistory가 없으면 빈 리스트를 반환한다")
-    void findAllPendingByMember_empty() {
+    void findAllByMember_AndStatus_empty() {
         // given
         final Member member = saveMember("user@test.com");
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
-                .findAllPendingByMember(member.getId(), NotificationStatus.PENDING);
+                .findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING);
 
         // then
         assertThat(result).isEmpty();

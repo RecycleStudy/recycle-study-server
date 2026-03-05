@@ -162,7 +162,7 @@ class ReviewCycleServiceTest {
         final Member member = Member.withoutId(Email.from("user@test.com"));
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(notificationHistoryRepository.findAllPendingByMember(member.getId(), NotificationStatus.PENDING))
+        given(notificationHistoryRepository.findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING))
                 .willReturn(List.of());
 
         // when
@@ -192,7 +192,7 @@ class ReviewCycleServiceTest {
                 NotificationStatus.PENDING);
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(notificationHistoryRepository.findAllPendingByMember(member.getId(), NotificationStatus.PENDING))
+        given(notificationHistoryRepository.findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING))
                 .willReturn(List.of(nh1, nh2));
 
         // when
@@ -223,7 +223,7 @@ class ReviewCycleServiceTest {
                 NotificationStatus.PENDING);
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
-        given(notificationHistoryRepository.findAllPendingByMember(member.getId(), NotificationStatus.PENDING))
+        given(notificationHistoryRepository.findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING))
                 .willReturn(List.of(nh1, nh2, nh3));
 
         // when

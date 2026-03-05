@@ -42,7 +42,7 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
             AND nh.status = :status
             ORDER BY rc.scheduledAt ASC
             """)
-    List<NotificationHistory> findAllPendingByMember(
+    List<NotificationHistory> findAllByMemberAndStatus(
             @Param("memberId") Long memberId,
             @Param("status") NotificationStatus status
     );
