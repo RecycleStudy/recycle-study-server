@@ -1,6 +1,10 @@
 spring:
   application:
     name: recyclestudy
+
+  threads:
+    virtual:
+      enabled: true
   profiles:
     active: local
 

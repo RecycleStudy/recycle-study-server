@@ -30,10 +30,10 @@ public class SingleReviewEmailSender {
         final boolean success = sendToTargetEmail(targetEmail, message);
 
         if (success) {
-            notificationHistoryService.saveAll(element.reviewCycleIds(), NotificationStatus.SENT);
+            notificationHistoryService.updateStatus(element.reviewCycleIds(), NotificationStatus.SENT);
             return;
         }
-        notificationHistoryService.saveAll(element.reviewCycleIds(), NotificationStatus.FAILED);
+        notificationHistoryService.updateStatus(element.reviewCycleIds(), NotificationStatus.FAILED);
     }
 
     private boolean sendToTargetEmail(final Email targetEmail, final String message) {

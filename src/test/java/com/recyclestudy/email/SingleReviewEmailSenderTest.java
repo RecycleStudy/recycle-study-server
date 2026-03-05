@@ -55,7 +55,7 @@ class SingleReviewEmailSenderTest {
 
         // then
         verify(emailSender).send(eq(email), eq("[Recycle Study] 오늘의 복습 목록이 도착했습니다"), any());
-        verify(notificationHistoryService).saveAll(ids, NotificationStatus.SENT);
+        verify(notificationHistoryService).updateStatus(ids, NotificationStatus.SENT);
     }
 
     @Test
@@ -73,7 +73,7 @@ class SingleReviewEmailSenderTest {
         singleReviewEmailSender.sendOne(element);
 
         // then
-        verify(notificationHistoryService).saveAll(ids, NotificationStatus.FAILED);
+        verify(notificationHistoryService).updateStatus(ids, NotificationStatus.FAILED);
     }
 
     @Test

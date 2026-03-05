@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,12 +33,18 @@ public class NotificationHistory extends BaseEntity {
     @Column(name = "status", nullable = false)
     private NotificationStatus status;
 
+    @Column(name = "fail_count", nullable = false)
+    private int failCount;
+
+    @Column(name = "last_attempted_at")
+    private LocalDateTime lastAttemptedAt;
+
     public static NotificationHistory withoutId(
             final ReviewCycle reviewCycle,
             final NotificationStatus status
     ) {
         validateNotNull(reviewCycle, status);
-        return new NotificationHistory(reviewCycle, status);
+        return new NotificationHistory(reviewCycle, status, 0, null);
     }
 
     private static void validateNotNull(
