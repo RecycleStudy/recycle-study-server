@@ -34,4 +34,16 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
             @Param("status") NotificationStatus status,
             @Param("now") LocalDateTime now
     );
+
+    @Query("""
+            SELECT nh FROM NotificationHistory nh
+            JOIN FETCH nh.reviewCycle rc
+            WHERE rc.review.member.id = :memberId
+            AND nh.status = :status
+            ORDER BY rc.scheduledAt ASC
+            """)
+    List<NotificationHistory> findAllByMemberAndStatus(
+            @Param("memberId") Long memberId,
+            @Param("status") NotificationStatus status
+    );
 }
