@@ -2,28 +2,26 @@ package com.recyclestudy.email;
 
 import com.recyclestudy.exception.EmailSendException;
 import com.recyclestudy.member.domain.Email;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.javamail.JavaMailSender;
+import software.amazon.awssdk.services.sesv2.SesV2Client;
+import software.amazon.awssdk.services.sesv2.model.SendEmailRequest;
+import software.amazon.awssdk.services.sesv2.model.SesV2Exception;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class EmailSenderTest {
 
     @Mock
-    private JavaMailSender javaMailSender;
+    private SesV2Client sesV2Client;
 
     @InjectMocks
     private EmailSender emailSender;
@@ -35,30 +33,24 @@ class EmailSenderTest {
         final Email targetEmail = Email.from("test@test.com");
         final String subject = "테스트 제목";
         final String content = "<html>테스트 내용</html>";
-        final MimeMessage mimeMessage = mock(MimeMessage.class);
-
-        given(javaMailSender.createMimeMessage()).willReturn(mimeMessage);
 
         // when
         emailSender.send(targetEmail, subject, content);
 
         // then
-        verify(javaMailSender).createMimeMessage();
-        verify(javaMailSender).send(mimeMessage);
+        verify(sesV2Client).sendEmail(any(SendEmailRequest.class));
     }
 
     @Test
     @DisplayName("메일 발송 실패 시 EmailSendException을 던진다")
-    void send_fail_throwsException() throws MessagingException {
+    void send_fail_throwsException() {
         // given
         final Email targetEmail = Email.from("test@test.com");
         final String subject = "테스트 제목";
         final String content = "<html>테스트 내용</html>";
-        final MimeMessage mimeMessage = mock(MimeMessage.class);
 
-        given(javaMailSender.createMimeMessage()).willReturn(mimeMessage);
-        willThrow(new MessagingException("메일 서버 오류"))
-                .given(mimeMessage).setRecipient(any(), any());
+        willThrow(SesV2Exception.builder().message("SES 오류").build())
+                .given(sesV2Client).sendEmail(any(SendEmailRequest.class));
 
         // when & then
         assertThatThrownBy(() -> emailSender.send(targetEmail, subject, content))
