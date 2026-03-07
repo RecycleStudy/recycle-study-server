@@ -5,6 +5,7 @@ import com.recyclestudy.member.domain.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.sesv2.SesV2Client;
 import software.amazon.awssdk.services.sesv2.model.Body;
 import software.amazon.awssdk.services.sesv2.model.Content;
@@ -12,7 +13,6 @@ import software.amazon.awssdk.services.sesv2.model.Destination;
 import software.amazon.awssdk.services.sesv2.model.EmailContent;
 import software.amazon.awssdk.services.sesv2.model.Message;
 import software.amazon.awssdk.services.sesv2.model.SendEmailRequest;
-import software.amazon.awssdk.services.sesv2.model.SesV2Exception;
 
 @Slf4j
 @Component
@@ -41,7 +41,7 @@ public class EmailSender {
         try {
             sesV2Client.sendEmail(request);
             log.info("[MAIL_SENT] 메일 발송 성공: email={}", targetEmail.toMaskedValue());
-        } catch (final SesV2Exception e) {
+        } catch (final SdkException e) {
             log.error("[MAIL_SEND_FAILED] 메일 발송 실패: email={}", targetEmail.toMaskedValue(), e);
             throw new EmailSendException("메일 전송 중 오류가 발생했습니다.", e);
         }
