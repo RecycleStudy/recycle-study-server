@@ -39,12 +39,15 @@ public class NotificationHistory extends BaseEntity {
     @Column(name = "last_attempted_at")
     private LocalDateTime lastAttemptedAt;
 
+    @Column(name = "deadline")
+    private LocalDateTime deadline;
+
     public static NotificationHistory withoutId(
             final ReviewCycle reviewCycle,
             final NotificationStatus status
     ) {
         validateNotNull(reviewCycle, status);
-        return new NotificationHistory(reviewCycle, status, 0, null);
+        return new NotificationHistory(reviewCycle, status, 0, null, null);
     }
 
     private static void validateNotNull(

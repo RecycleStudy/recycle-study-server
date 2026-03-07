@@ -10,7 +10,7 @@ public class EmailRetryScheduler {
 
     private final EmailRetryService emailRetryService;
 
-    @Scheduled(fixedDelay = 60_000)
+    @Scheduled(fixedDelay = 300_000)
     public void runRetry() {
         emailRetryService.retryFailedEmails();
     }

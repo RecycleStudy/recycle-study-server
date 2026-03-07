@@ -26,13 +26,15 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
     @Modifying(clearAutomatically = true)
     @Query("""
             UPDATE NotificationHistory nh
-            SET nh.status = :status, nh.failCount = nh.failCount + 1, nh.lastAttemptedAt = :now
-            WHERE nh.reviewCycle.id IN :reviewCycleIds
+            SET nh.status = :status, nh.failCount = nh.failCount + 1,
+                nh.lastAttemptedAt = :now, nh.deadline = :deadline
+            WHERE nh.reviewCycle.id = :reviewCycleId
             """)
     int updateStatusWithIncrementFailCount(
-            @Param("reviewCycleIds") List<Long> reviewCycleIds,
+            @Param("reviewCycleId") Long reviewCycleId,
             @Param("status") NotificationStatus status,
-            @Param("now") LocalDateTime now
+            @Param("now") LocalDateTime now,
+            @Param("deadline") LocalDateTime deadline
     );
 
     @Query("""
