@@ -19,7 +19,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 
 @Entity
-@Table(name = "notification_history", uniqueConstraints = @UniqueConstraint(columnNames = "review_cycle_id"))
+@Table(
+        name = "notification_history",
+        uniqueConstraints = @UniqueConstraint(name = "uk_notification_history_review_cycle_id", columnNames = "review_cycle_id")
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @FieldNameConstants(level = AccessLevel.PRIVATE)
