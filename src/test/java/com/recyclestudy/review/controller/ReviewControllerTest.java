@@ -12,7 +12,9 @@ import com.recyclestudy.member.repository.DeviceRepository;
 import com.recyclestudy.restdocs.APIBaseTest;
 import com.recyclestudy.review.controller.request.ReviewSaveRequest;
 import com.recyclestudy.review.domain.ReviewURL;
+import com.recyclestudy.review.service.ReviewCycleService;
 import com.recyclestudy.review.service.ReviewService;
+import com.recyclestudy.review.service.output.NextReviewOutput;
 import com.recyclestudy.review.service.output.ReviewSaveOutput;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -40,6 +42,9 @@ class ReviewControllerTest extends APIBaseTest {
 
     @MockitoBean
     private ReviewService reviewService;
+
+    @MockitoBean
+    private ReviewCycleService reviewCycleService;
 
     @MockitoBean
     private DeviceRepository deviceRepository;
@@ -244,5 +249,98 @@ class ReviewControllerTest extends APIBaseTest {
                 .then()
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .body("message", equalTo("인증되지 않은 디바이스입니다"));
+    }
+
+    @Test
+    @DisplayName("다음 리뷰 조회 시 200 응답과 scheduledAt, count를 반환한다")
+    void findNextReview_success() {
+        // given
+        final String identifier = "device-id";
+        final LocalDateTime scheduledAt = LocalDateTime.of(2026, 3, 6, 9, 0);
+        final NextReviewOutput output = NextReviewOutput.of(scheduledAt, 3);
+
+        given(reviewCycleService.findNextReview(any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("다음 리뷰 조회")
+                                .description("다음 발송 예정 시간과 URL 개수를 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("scheduledAt").type(JsonFieldType.STRING)
+                                                .description("다음 발송 예정 시간 (PENDING 없을 시 null)"),
+                                        fieldWithPath("count").type(JsonFieldType.NUMBER)
+                                                .description("해당 시간에 발송될 URL 개수")
+                                )
+                ))
+                .header("X-Device-Id", identifier)
+                .when()
+                .get("/api/v1/reviews/next")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("count", equalTo(3));
+    }
+
+    @Test
+    @DisplayName("PENDING이 없을 때 200 응답과 scheduledAt=null, count=0을 반환한다")
+    void findNextReview_empty() {
+        // given
+        final String identifier = "device-id";
+        final NextReviewOutput output = NextReviewOutput.empty();
+
+        given(reviewCycleService.findNextReview(any())).willReturn(output);
+
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("다음 리뷰 조회")
+                                .description("PENDING이 없을 때 scheduledAt=null, count=0을 반환한다")
+                                .requestHeaders(
+                                        headerWithName("X-Device-Id").description("디바이스 식별자")
+                                )
+                                .responseFields(
+                                        fieldWithPath("scheduledAt").type(JsonFieldType.NULL)
+                                                .description("다음 발송 예정 시간 (PENDING 없을 시 null)"),
+                                        fieldWithPath("count").type(JsonFieldType.NUMBER)
+                                                .description("해당 시간에 발송될 URL 개수")
+                                )
+                ))
+                .header("X-Device-Id", identifier)
+                .when()
+                .get("/api/v1/reviews/next")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("scheduledAt", equalTo(null))
+                .body("count", equalTo(0));
+    }
+
+    @Test
+    @DisplayName("헤더 없이 다음 리뷰 조회 시 401 응답을 반환한다")
+    void findNextReview_noHeader() {
+        // when
+        // then
+        given(this.spec)
+                .filter(document(DEFAULT_REST_DOC_PATH,
+                        builder()
+                                .tag("Review")
+                                .summary("다음 리뷰 조회")
+                                .description("헤더 없이 다음 리뷰 조회 시 401 응답을 반환한다")
+                                .responseFields(
+                                        fieldWithPath("message").type(JsonFieldType.STRING).description("에러 메시지")
+                                )
+                ))
+                .when()
+                .get("/api/v1/reviews/next")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value());
     }
 }

@@ -1,6 +1,10 @@
 spring:
   application:
     name: recyclestudy
+
+  threads:
+    virtual:
+      enabled: true
   profiles:
     active: local
 
@@ -23,17 +27,6 @@ spring:
 
     open-in-view: false
 
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${GMAIL_USERNAME}
-    password: ${GMAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          starttls:
-            enable: true
-          auth: true
 
 server:
   tomcat:

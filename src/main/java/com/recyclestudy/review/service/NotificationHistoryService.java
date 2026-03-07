@@ -1,10 +1,9 @@
 package com.recyclestudy.review.service;
 
-import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
-import com.recyclestudy.review.domain.ReviewCycle;
 import com.recyclestudy.review.repository.NotificationHistoryRepository;
-import com.recyclestudy.review.repository.ReviewCycleRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,17 +16,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationHistoryService {
 
     private final NotificationHistoryRepository notificationHistoryRepository;
-    private final ReviewCycleRepository reviewCycleRepository;
+    private final Clock clock;
 
     @Transactional
-    public void saveAll(final List<Long> reviewCycleIds, final NotificationStatus status) {
-        final List<ReviewCycle> reviewCycles = reviewCycleRepository.findAllById(reviewCycleIds);
+    public void updateStatus(final List<Long> reviewCycleIds, final NotificationStatus status) {
+        if (reviewCycleIds.isEmpty()) {
+            return;
+        }
+        final LocalDateTime now = LocalDateTime.now(clock);
+        int updated;
+        if (status == NotificationStatus.FAILED) {
+            updated = notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
+        } else {
+            updated = notificationHistoryRepository.updateStatus(reviewCycleIds, status, now);
+        }
+        if (updated != reviewCycleIds.size()) {
+            log.warn("[NOTIFY_HIST_MISMATCH] 기대={}, 실제={}", reviewCycleIds.size(), updated);
+        }
 
-        final List<NotificationHistory> histories = reviewCycles.stream()
-                .map(cycle -> NotificationHistory.withoutId(cycle, status))
-                .toList();
-
-        notificationHistoryRepository.saveAll(histories);
-        log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, histories.size());
+        log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, updated);
     }
 }

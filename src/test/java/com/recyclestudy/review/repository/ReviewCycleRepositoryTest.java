@@ -32,93 +32,118 @@ class ReviewCycleRepositoryTest {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    private static final LocalDateTime CUTOFF = LocalDateTime.now().minusDays(1);
+    private static final LocalDateTime LONG_AGO = LocalDateTime.now().minusDays(2);
+    private static final LocalDateTime RECENT = LocalDateTime.now().minusHours(1);
+
     @Test
-    @DisplayName("재시도 대상(실패 이력만 있고 최대 횟수 미만)을 조회한다")
+    @DisplayName("FAILED 상태이고 failCount가 최대 횟수 미만이면 재시도 대상에 포함된다")
     void findAllRetryableCycles_success() {
         // given
-        final Member member = memberRepository.save(Member.withoutId(Email.from("test@email.com")));
-        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
-        final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
-
+        final ReviewCycle cycle = saveCycle("retry@email.com", LONG_AGO);
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
-        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
+
+        notificationHistoryRepository.updateStatusWithIncrementFailCount(
+                List.of(cycle.getId()), NotificationStatus.FAILED, LocalDateTime.now());
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, 3, CUTOFF);
 
         // then
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).getId()).isEqualTo(cycle.getId());
+        assertThat(results.getFirst().getId()).isEqualTo(cycle.getId());
     }
 
     @Test
     @DisplayName("PENDING 상태만 있는 경우는 재시도 대상이 아니다")
     void findAllRetryableCycles_pendingOnly() {
         // given
-        final Member member = memberRepository.save(Member.withoutId(Email.from("pending@email.com")));
-        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
-        final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
-
+        final ReviewCycle cycle = saveCycle("pending@email.com", LONG_AGO);
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, 3, CUTOFF);
 
         // then
         assertThat(results).isEmpty();
     }
 
     @Test
-    @DisplayName("이미 성공한 이력이 있으면 재시도 대상이 아니다")
+    @DisplayName("이미 SENT 상태이면 재시도 대상이 아니다")
     void findAllRetryableCycles_alreadySent() {
         // given
-        final Member member = memberRepository.save(Member.withoutId(Email.from("sent@email.com")));
-        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
-        final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
-
+        final ReviewCycle cycle = saveCycle("sent@email.com", LONG_AGO);
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
-        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
-        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.SENT));
+
+        notificationHistoryRepository.updateStatus(
+                List.of(cycle.getId()), NotificationStatus.SENT, LocalDateTime.now());
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, 3, CUTOFF);
 
         // then
         assertThat(results).isEmpty();
     }
 
     @Test
-    @DisplayName("최대 재시도 횟수에 도달하면 재시도 대상이 아니다")
+    @DisplayName("failCount가 최대 재시도 횟수에 도달하면 재시도 대상이 아니다")
     void findAllRetryableCycles_maxRetryReached() {
         // given
-        final Member member = memberRepository.save(Member.withoutId(Email.from("max@email.com")));
-        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
-        final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
-
+        final ReviewCycle cycle = saveCycle("max@email.com", LONG_AGO);
         notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
-        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
-        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
-        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.FAILED));
+
+        // failCount를 3으로 만들기 위해 3번 increment
+        for (int i = 0; i < 3; i++) {
+            notificationHistoryRepository.updateStatusWithIncrementFailCount(
+                    List.of(cycle.getId()), NotificationStatus.FAILED, LocalDateTime.now());
+        }
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, 3, CUTOFF);
 
         // then
         assertThat(results).isEmpty();
     }
 
     @Test
-    @DisplayName("이력이 없는 경우 재시도 대상이 아니다")
+    @DisplayName("notification_history가 없는 경우 재시도 대상이 아니다")
     void findAllRetryableCycles_noHistory() {
         // given
-        final Member member = memberRepository.save(Member.withoutId(Email.from("new@email.com")));
-        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
-        reviewCycleRepository.save(ReviewCycle.withoutId(review, LocalDateTime.now()));
+        saveCycle("new@email.com", LONG_AGO);
 
         // when
-        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(3);
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, 3, CUTOFF);
 
         // then
         assertThat(results).isEmpty();
+    }
+
+    @Test
+    @DisplayName("scheduledAt이 cutoffDateTime보다 최근인 단기 주기는 재시도 대상이 아니다")
+    void findAllRetryableCycles_shortCycle() {
+        // given
+        final ReviewCycle cycle = saveCycle("short@email.com", RECENT);
+        notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, NotificationStatus.PENDING));
+
+        notificationHistoryRepository.updateStatusWithIncrementFailCount(
+                List.of(cycle.getId()), NotificationStatus.FAILED, LocalDateTime.now());
+
+        // when
+        final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
+                NotificationStatus.FAILED, 3, CUTOFF);
+
+        // then
+        assertThat(results).isEmpty();
+    }
+
+    private ReviewCycle saveCycle(final String email, final LocalDateTime scheduledAt) {
+        final Member member = memberRepository.save(Member.withoutId(Email.from(email)));
+        final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
+        return reviewCycleRepository.save(ReviewCycle.withoutId(review, scheduledAt));
     }
 }
