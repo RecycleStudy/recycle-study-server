@@ -33,7 +33,7 @@ class ReviewCycleRepositoryTest {
     @Autowired
     private ReviewRepository reviewRepository;
 
-    private static final LocalDateTime NOW = LocalDateTime.now();
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 1, 1, 0, 0, 0);
     private static final LocalDateTime FUTURE_DEADLINE = NOW.plusHours(23);
     private static final LocalDateTime PAST_DEADLINE = NOW.minusHours(1);
     private static final LocalDateTime SCHEDULED_AT = NOW.minusDays(1);
