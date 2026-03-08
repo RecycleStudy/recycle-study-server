@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewService {
+
+    private static final long LAST_CYCLE_DEADLINE_HOURS = 24;
 
     private final ReviewRepository reviewRepository;
     private final ReviewCycleRepository reviewCycleRepository;
@@ -96,8 +99,14 @@ public class ReviewService {
     }
 
     private void savePendingNotificationHistory(final List<ReviewCycle> savedReviewCycles) {
-        final List<NotificationHistory> notificationHistories = savedReviewCycles.stream()
-                .map(reviewCycle -> NotificationHistory.withoutId(reviewCycle, NotificationStatus.PENDING))
+        final List<NotificationHistory> notificationHistories = IntStream.range(0, savedReviewCycles.size())
+                .mapToObj(i -> {
+                    final ReviewCycle reviewCycle = savedReviewCycles.get(i);
+                    final LocalDateTime deadline = (i < savedReviewCycles.size() - 1)
+                            ? savedReviewCycles.get(i + 1).getScheduledAt()
+                            : reviewCycle.getScheduledAt().plusHours(LAST_CYCLE_DEADLINE_HOURS);
+                    return NotificationHistory.withoutId(reviewCycle, NotificationStatus.PENDING, deadline);
+                })
                 .toList();
         final List<NotificationHistory> savedNotificationHistories
                 = notificationHistoryRepository.saveAll(notificationHistories);
