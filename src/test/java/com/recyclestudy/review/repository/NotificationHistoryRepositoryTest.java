@@ -41,8 +41,8 @@ class NotificationHistoryRepositoryTest {
     void findAllPendingByMember_AscOrderAndStatus() {
         // given
         final Member member = saveMember("user@test.com");
-        saveNh(member, T2, NotificationStatus.PENDING);
-        saveNh(member, T1, NotificationStatus.PENDING);
+        saveNotificationHistory(member, T2, NotificationStatus.PENDING);
+        saveNotificationHistory(member, T1, NotificationStatus.PENDING);
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
@@ -62,8 +62,8 @@ class NotificationHistoryRepositoryTest {
         // given
         final Member member = saveMember("user@test.com");
         final Member other = saveMember("other@test.com");
-        saveNh(member, T1, NotificationStatus.PENDING);
-        saveNh(other, T1, NotificationStatus.PENDING);
+        saveNotificationHistory(member, T1, NotificationStatus.PENDING);
+        saveNotificationHistory(other, T1, NotificationStatus.PENDING);
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
@@ -79,8 +79,8 @@ class NotificationHistoryRepositoryTest {
     void findAllPendingByMember_excludesNonAndStatus() {
         // given
         final Member member = saveMember("user@test.com");
-        saveNh(member, T1, NotificationStatus.SENT);
-        saveNh(member, T2, NotificationStatus.FAILED);
+        saveNotificationHistory(member, T1, NotificationStatus.SENT);
+        saveNotificationHistory(member, T2, NotificationStatus.FAILED);
 
         // when
         final List<NotificationHistory> result = notificationHistoryRepository
@@ -108,10 +108,11 @@ class NotificationHistoryRepositoryTest {
         return memberRepository.save(Member.withoutId(Email.from(email)));
     }
 
-    private NotificationHistory saveNh(final Member member, final LocalDateTime scheduledAt,
-                                       final NotificationStatus status) {
+    private NotificationHistory saveNotificationHistory(final Member member, final LocalDateTime scheduledAt,
+                                                        final NotificationStatus status) {
         final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("https://example.com")));
         final ReviewCycle cycle = reviewCycleRepository.save(ReviewCycle.withoutId(review, scheduledAt));
-        return notificationHistoryRepository.save(NotificationHistory.withoutId(cycle, status));
+        return notificationHistoryRepository.save(
+                NotificationHistory.withoutId(cycle, status, scheduledAt.plusHours(24)));
     }
 }

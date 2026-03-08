@@ -110,10 +110,12 @@ class ReviewServiceTest {
         final ArgumentCaptor<List<NotificationHistory>> captor = ArgumentCaptor.forClass(List.class);
         verify(notificationHistoryRepository).saveAll(captor.capture());
 
+        final LocalDateTime expectedDeadline = now.plusDays(1).plusHours(24);
         assertSoftly(softAssertions -> {
             softAssertions.assertThat(actual.url()).isEqualTo(ReviewURL.from(urlValue));
             softAssertions.assertThat(actual.scheduledAts()).hasSize(1);
             softAssertions.assertThat(captor.getValue()).allMatch(h -> h.getStatus() == NotificationStatus.PENDING);
+            softAssertions.assertThat(captor.getValue()).allMatch(h -> h.getDeadline().equals(expectedDeadline));
         });
 
         verify(memberRepository).findByIdentifier(any(DeviceIdentifier.class));
