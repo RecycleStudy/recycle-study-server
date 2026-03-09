@@ -284,6 +284,7 @@ class ReviewControllerTest extends APIBaseTest {
                 .get("/api/v1/reviews/next")
                 .then()
                 .statusCode(HttpStatus.OK.value())
+                .body("scheduledAt", equalTo("2026-03-06T09:00:00Z"))
                 .body("count", equalTo(3));
     }
 
