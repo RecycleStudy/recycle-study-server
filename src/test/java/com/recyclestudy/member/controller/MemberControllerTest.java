@@ -145,7 +145,7 @@ class MemberControllerTest extends APIBaseTest {
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
                                         fieldWithPath("devices[].createdAt").type(JsonFieldType.STRING)
-                                                .description("디바이스 생성일")
+                                                .description("디바이스 생성일 (UTC, ISO 8601)")
                                 )
                 ))
                 .header("X-Device-Id", headerIdentifier)
@@ -396,7 +396,7 @@ class MemberControllerTest extends APIBaseTest {
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
                                         fieldWithPath("devices[].createdAt").type(JsonFieldType.STRING)
-                                                .description("디바이스 생성일")
+                                                .description("디바이스 생성일 (UTC, ISO 8601)")
                                 ),
                         queryParameters(
                                 parameterWithName("email").description("이메일 (다음 버전에서 제거 예정)")
@@ -434,7 +434,7 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("notificationTime").type(JsonFieldType.STRING)
-                                                .description("알림 시간 (HH:mm:ss)")
+                                                .description("알림 시간 (HH:mm:ss, UTC 기준)")
                                 )
                 ))
                 .header("X-Device-Id", headerIdentifier)
@@ -531,7 +531,7 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .requestFields(
                                         fieldWithPath("notificationTime").type(JsonFieldType.STRING)
-                                                .description("알림 시간 (HH:mm:ss)")
+                                                .description("알림 시간 (HH:mm:ss, UTC 기준)")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)

@@ -96,7 +96,7 @@ class ReviewControllerTest extends APIBaseTest {
                                 .responseFields(
                                         fieldWithPath("url").type(JsonFieldType.STRING).description("리뷰할 URL"),
                                         fieldWithPath("scheduledAts").type(JsonFieldType.ARRAY)
-                                                .description("복습 예정 일시 목록")
+                                                .description("복습 예정 일시 목록 (UTC, ISO 8601)")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -146,7 +146,7 @@ class ReviewControllerTest extends APIBaseTest {
                                 .responseFields(
                                         fieldWithPath("url").type(JsonFieldType.STRING).description("리뷰할 URL"),
                                         fieldWithPath("scheduledAts").type(JsonFieldType.ARRAY)
-                                                .description("복습 예정 일시 목록")
+                                                .description("복습 예정 일시 목록 (UTC, ISO 8601)")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -274,7 +274,7 @@ class ReviewControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("scheduledAt").type(JsonFieldType.STRING)
-                                                .description("다음 발송 예정 시간 (PENDING 없을 시 null)"),
+                                                .description("다음 발송 예정 시간, UTC ISO 8601 형식 (PENDING 없을 시 null)"),
                                         fieldWithPath("count").type(JsonFieldType.NUMBER)
                                                 .description("해당 시간에 발송될 URL 개수")
                                 )
@@ -309,7 +309,7 @@ class ReviewControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("scheduledAt").type(JsonFieldType.NULL)
-                                                .description("다음 발송 예정 시간 (PENDING 없을 시 null)"),
+                                                .description("다음 발송 예정 시간, UTC ISO 8601 형식 (PENDING 없을 시 null)"),
                                         fieldWithPath("count").type(JsonFieldType.NUMBER)
                                                 .description("해당 시간에 발송될 URL 개수")
                                 )
