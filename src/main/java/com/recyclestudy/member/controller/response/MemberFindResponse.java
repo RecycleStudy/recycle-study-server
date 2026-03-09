@@ -1,7 +1,7 @@
 package com.recyclestudy.member.controller.response;
 
 import com.recyclestudy.member.service.output.MemberFindOutput;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public record MemberFindResponse(String email, List<MemberFindElement> devices) {
@@ -14,6 +14,6 @@ public record MemberFindResponse(String email, List<MemberFindElement> devices) 
         return new MemberFindResponse(output.email().getValue(), memberFindElements);
     }
 
-    private record MemberFindElement(String identifier, LocalDateTime createdAt) {
+    private record MemberFindElement(String identifier, Instant createdAt) {
     }
 }

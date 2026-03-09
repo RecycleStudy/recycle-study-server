@@ -154,7 +154,7 @@ class ReviewServiceTest {
 
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
-        final LocalTime preferredTime = LocalTime.of(9, 0);
+        final LocalTime preferredTime = LocalTime.of(0, 0);
         member.updateNotificationTime(preferredTime);
 
         final Review review = Review.withoutId(member, ReviewURL.from(urlValue));

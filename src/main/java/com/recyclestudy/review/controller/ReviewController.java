@@ -35,7 +35,7 @@ public class ReviewController {
     ) {
         final ReviewSaveInput input = ReviewSaveInput.of(identifier, request.targetUrl(), request.cycle());
         final ReviewSaveOutput output = reviewService.saveReview(input);
-        ReviewSaveResponse response = ReviewSaveResponse.of(output.url(), output.scheduledAts());
+        ReviewSaveResponse response = ReviewSaveResponse.from(output);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
