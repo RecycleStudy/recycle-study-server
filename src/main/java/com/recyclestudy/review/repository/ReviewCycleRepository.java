@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> {
 
     @Query("""
@@ -29,12 +30,11 @@ public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> 
             JOIN FETCH r.member
             JOIN NotificationHistory nh ON rc.id = nh.reviewCycle.id
             WHERE nh.status = :status
-            AND nh.failCount < :maxRetryCount
-            AND rc.scheduledAt <= :cutoffDateTime
+            AND nh.deadline > :now
             """)
     List<ReviewCycle> findAllRetryableCycles(
             @Param("status") NotificationStatus status,
-            @Param("maxRetryCount") int maxRetryCount,
-            @Param("cutoffDateTime") LocalDateTime cutoffDateTime
+            @Param("now") LocalDateTime now
     );
+
 }

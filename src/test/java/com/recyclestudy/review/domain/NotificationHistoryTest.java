@@ -19,11 +19,13 @@ class NotificationHistoryTest {
     private static Stream<Arguments> provideInvalidValue() {
         final ReviewCycle reviewCycle = createReviewCycle();
         final NotificationStatus status = NotificationStatus.PENDING;
+        final LocalDateTime deadline = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).plusHours(24);
 
         return Stream.of(
-                Arguments.of(null, status),
-                Arguments.of(reviewCycle, null),
-                Arguments.of(null, null)
+                Arguments.of(null, status, deadline),
+                Arguments.of(reviewCycle, null, deadline),
+                Arguments.of(reviewCycle, status, null),
+                Arguments.of(null, null, null)
         );
     }
 
@@ -40,14 +42,16 @@ class NotificationHistoryTest {
         // given
         final ReviewCycle reviewCycle = createReviewCycle();
         final NotificationStatus status = NotificationStatus.PENDING;
+        final LocalDateTime deadline = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).plusHours(24);
 
         // when
-        final NotificationHistory actual = NotificationHistory.withoutId(reviewCycle, status);
+        final NotificationHistory actual = NotificationHistory.withoutId(reviewCycle, status, deadline);
 
         // then
         assertSoftly(softAssertions -> {
             softAssertions.assertThat(actual.getReviewCycle()).isEqualTo(reviewCycle);
             softAssertions.assertThat(actual.getStatus()).isEqualTo(status);
+            softAssertions.assertThat(actual.getDeadline()).isEqualTo(deadline);
         });
     }
 
@@ -56,12 +60,13 @@ class NotificationHistoryTest {
     @DisplayName("null로 생성 시도 시, 예외를 던진다")
     void throwExceptionWhenNull(
             final ReviewCycle reviewCycle,
-            final NotificationStatus status
+            final NotificationStatus status,
+            final LocalDateTime deadline
     ) {
         // given
         // when
         // then
-        assertThatThrownBy(() -> NotificationHistory.withoutId(reviewCycle, status))
+        assertThatThrownBy(() -> NotificationHistory.withoutId(reviewCycle, status, deadline))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

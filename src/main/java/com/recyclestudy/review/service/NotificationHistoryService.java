@@ -24,16 +24,15 @@ public class NotificationHistoryService {
             return;
         }
         final LocalDateTime now = LocalDateTime.now(clock);
-        int updated;
+        final int updated;
         if (status == NotificationStatus.FAILED) {
-            updated = notificationHistoryRepository.updateStatusWithIncrementFailCount(reviewCycleIds, status, now);
+            updated = notificationHistoryRepository.updateStatusAndIncrementFailCount(reviewCycleIds, status, now);
         } else {
             updated = notificationHistoryRepository.updateStatus(reviewCycleIds, status, now);
         }
         if (updated != reviewCycleIds.size()) {
             log.warn("[NOTIFY_HIST_MISMATCH] 기대={}, 실제={}", reviewCycleIds.size(), updated);
         }
-
         log.info("[NOTIFY_HIST_UPDATED] 알림 이력 상태 변경: status={}, count={}", status, updated);
     }
 }

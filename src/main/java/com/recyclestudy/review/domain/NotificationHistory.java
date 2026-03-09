@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -18,7 +19,13 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 
 @Entity
-@Table(name = "notification_history")
+@Table(
+        name = "notification_history",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_notification_history_review_cycle_id",
+                columnNames = "review_cycle_id"
+        )
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @FieldNameConstants(level = AccessLevel.PRIVATE)
@@ -39,21 +46,27 @@ public class NotificationHistory extends BaseEntity {
     @Column(name = "last_attempted_at")
     private LocalDateTime lastAttemptedAt;
 
+    @Column(name = "deadline", nullable = false)
+    private LocalDateTime deadline;
+
     public static NotificationHistory withoutId(
             final ReviewCycle reviewCycle,
-            final NotificationStatus status
+            final NotificationStatus status,
+            final LocalDateTime deadline
     ) {
-        validateNotNull(reviewCycle, status);
-        return new NotificationHistory(reviewCycle, status, 0, null);
+        validateNotNull(reviewCycle, status, deadline);
+        return new NotificationHistory(reviewCycle, status, 0, null, deadline);
     }
 
     private static void validateNotNull(
             final ReviewCycle reviewCycle,
-            final NotificationStatus status
+            final NotificationStatus status,
+            final LocalDateTime deadline
     ) {
         NullValidator.builder()
                 .add(Fields.reviewCycle, reviewCycle)
                 .add(Fields.status, status)
+                .add(Fields.deadline, deadline)
                 .validate();
     }
 }

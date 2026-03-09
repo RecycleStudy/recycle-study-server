@@ -51,7 +51,7 @@ class EmailRetryServiceTest {
         given(clock.instant()).willReturn(Instant.parse("2026-01-01T00:00:00Z"));
         given(clock.getZone()).willReturn(ZoneId.of("UTC"));
         given(reviewCycleRepository.findAllRetryableCycles(
-                eq(NotificationStatus.FAILED), any(Integer.class), any(LocalDateTime.class)))
+                eq(NotificationStatus.FAILED), any(LocalDateTime.class)))
                 .willReturn(Collections.emptyList());
 
         // when
@@ -85,7 +85,7 @@ class EmailRetryServiceTest {
         given(cycle2.getReview()).willReturn(review1);
 
         given(reviewCycleRepository.findAllRetryableCycles(
-                eq(NotificationStatus.FAILED), any(Integer.class), any(LocalDateTime.class)))
+                eq(NotificationStatus.FAILED), any(LocalDateTime.class)))
                 .willReturn(List.of(cycle1, cycle2));
 
         // when

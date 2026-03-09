@@ -29,7 +29,7 @@ public interface NotificationHistoryRepository extends JpaRepository<Notificatio
             SET nh.status = :status, nh.failCount = nh.failCount + 1, nh.lastAttemptedAt = :now
             WHERE nh.reviewCycle.id IN :reviewCycleIds
             """)
-    int updateStatusWithIncrementFailCount(
+    int updateStatusAndIncrementFailCount(
             @Param("reviewCycleIds") List<Long> reviewCycleIds,
             @Param("status") NotificationStatus status,
             @Param("now") LocalDateTime now

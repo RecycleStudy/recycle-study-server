@@ -21,19 +21,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EmailRetryService {
 
-    // 단기 주기(1일 미만) 재시도 제외: review_cycle에 주기 컬럼이 없으므로 scheduledAt 경과 시간으로 단기/장기 여부를 역산
-    private static final long SHORT_CYCLE_THRESHOLD_DAYS = 1;
-    private static final int MAX_RETRY_COUNT = 3;
-
     private final ReviewCycleRepository reviewCycleRepository;
     private final SingleReviewEmailSender singleReviewEmailSender;
     private final Clock clock;
 
     @Transactional(readOnly = true)
     public void retryFailedEmails() {
-        final LocalDateTime cutoffDateTime = LocalDateTime.now(clock).minusDays(SHORT_CYCLE_THRESHOLD_DAYS);
+        final LocalDateTime now = LocalDateTime.now(clock);
         final List<ReviewCycle> failedCycles = reviewCycleRepository.findAllRetryableCycles(
-                NotificationStatus.FAILED, MAX_RETRY_COUNT, cutoffDateTime);
+                NotificationStatus.FAILED, now);
 
         if (failedCycles.isEmpty()) {
             return;

@@ -50,20 +50,18 @@ class NotificationHistoryServiceTest {
     }
 
     @Test
-    @DisplayName("FAILED 상태로 업데이트하면 failCount를 1 증가시킨다")
+    @DisplayName("FAILED 상태로 업데이트하면 배치 쿼리로 failCount를 1 증가시킨다")
     void updateStatus_failed() {
         // given
-        final List<Long> reviewCycleIds = List.of(1L);
-        BDDMockito.given(clock.instant())
-                .willReturn(Instant.parse("2026-01-01T00:00:00Z"));
-        BDDMockito.given(clock.getZone())
-                .willReturn(ZoneId.of("UTC"));
+        final List<Long> reviewCycleIds = List.of(1L, 2L);
+        BDDMockito.given(clock.instant()).willReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        BDDMockito.given(clock.getZone()).willReturn(ZoneId.of("UTC"));
 
         // when
         notificationHistoryService.updateStatus(reviewCycleIds, NotificationStatus.FAILED);
 
         // then
-        verify(notificationHistoryRepository).updateStatusWithIncrementFailCount(
+        verify(notificationHistoryRepository).updateStatusAndIncrementFailCount(
                 eq(reviewCycleIds), eq(NotificationStatus.FAILED), any(LocalDateTime.class));
     }
 }

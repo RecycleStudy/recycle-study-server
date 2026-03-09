@@ -187,9 +187,9 @@ class ReviewCycleServiceTest {
 
         final Review review = Review.withoutId(member, ReviewURL.from("https://example.com"));
         final NotificationHistory nh1 = NotificationHistory.withoutId(ReviewCycle.withoutId(review, t1),
-                NotificationStatus.PENDING);
+                NotificationStatus.PENDING, t2);
         final NotificationHistory nh2 = NotificationHistory.withoutId(ReviewCycle.withoutId(review, t2),
-                NotificationStatus.PENDING);
+                NotificationStatus.PENDING, t2.plusHours(24));
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
         given(notificationHistoryRepository.findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING))
@@ -216,11 +216,11 @@ class ReviewCycleServiceTest {
 
         final Review review = Review.withoutId(member, ReviewURL.from("https://example.com"));
         final NotificationHistory nh1 = NotificationHistory.withoutId(ReviewCycle.withoutId(review, t1),
-                NotificationStatus.PENDING);
+                NotificationStatus.PENDING, t1.plusHours(24));
         final NotificationHistory nh2 = NotificationHistory.withoutId(ReviewCycle.withoutId(review, t1),
-                NotificationStatus.PENDING);
+                NotificationStatus.PENDING, t1.plusHours(24));
         final NotificationHistory nh3 = NotificationHistory.withoutId(ReviewCycle.withoutId(review, t1),
-                NotificationStatus.PENDING);
+                NotificationStatus.PENDING, t1.plusHours(24));
 
         given(memberRepository.findByIdentifier(identifier)).willReturn(Optional.of(member));
         given(notificationHistoryRepository.findAllByMemberAndStatus(member.getId(), NotificationStatus.PENDING))
