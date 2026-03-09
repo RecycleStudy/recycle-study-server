@@ -22,7 +22,7 @@ public class ReviewEmailSender {
     private final ReviewCycleService reviewCycleService;
     private final Clock clock;
 
-    @Scheduled(cron = "${schedule.review-mail.cron}", zone = "Asia/Seoul")
+    @Scheduled(cron = "${schedule.review-mail.cron}", zone = "UTC")
     public void sendReviewMail() {
         final LocalDateTime targetDateTime = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
 

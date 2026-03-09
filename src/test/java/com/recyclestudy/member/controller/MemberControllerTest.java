@@ -17,6 +17,7 @@ import com.recyclestudy.member.service.output.MemberFindOutput;
 import com.recyclestudy.member.service.output.MemberNotificationTimeFindOutput;
 import com.recyclestudy.member.service.output.MemberSaveOutput;
 import com.recyclestudy.restdocs.APIBaseTest;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -114,11 +115,11 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from(headerIdentifier),
-                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).minusDays(1)
+                Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES)
         );
         final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from("device-id-2"),
-                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
+                Instant.now().truncatedTo(ChronoUnit.MINUTES)
         );
 
         final MemberFindOutput output = new MemberFindOutput(
@@ -145,7 +146,7 @@ class MemberControllerTest extends APIBaseTest {
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
                                         fieldWithPath("devices[].createdAt").type(JsonFieldType.STRING)
-                                                .description("디바이스 생성일")
+                                                .description("디바이스 생성일 (UTC, ISO 8601)")
                                 )
                 ))
                 .header("X-Device-Id", headerIdentifier)
@@ -337,7 +338,7 @@ class MemberControllerTest extends APIBaseTest {
                 Email.from("test@test.com"),
                 List.of(new MemberFindOutput.MemberFindElement(
                         DeviceIdentifier.from(headerIdentifier),
-                        LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
+                        Instant.now().truncatedTo(ChronoUnit.MINUTES)
                 ))
         );
         given(memberService.findAllMemberDevices(any())).willReturn(output);
@@ -362,11 +363,11 @@ class MemberControllerTest extends APIBaseTest {
 
         final MemberFindOutput.MemberFindElement device1 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from(headerIdentifier),
-                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).minusDays(1)
+                Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES)
         );
         final MemberFindOutput.MemberFindElement device2 = new MemberFindOutput.MemberFindElement(
                 DeviceIdentifier.from("device-id-2"),
-                LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
+                Instant.now().truncatedTo(ChronoUnit.MINUTES)
         );
 
         final MemberFindOutput output = new MemberFindOutput(
@@ -396,7 +397,7 @@ class MemberControllerTest extends APIBaseTest {
                                         fieldWithPath("devices[].identifier").type(JsonFieldType.STRING)
                                                 .description("디바이스 식별자 값"),
                                         fieldWithPath("devices[].createdAt").type(JsonFieldType.STRING)
-                                                .description("디바이스 생성일")
+                                                .description("디바이스 생성일 (UTC, ISO 8601)")
                                 ),
                         queryParameters(
                                 parameterWithName("email").description("이메일 (다음 버전에서 제거 예정)")
@@ -434,7 +435,7 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .responseFields(
                                         fieldWithPath("notificationTime").type(JsonFieldType.STRING)
-                                                .description("알림 시간 (HH:mm:ss)")
+                                                .description("알림 시간 (HH:mm:ss, UTC 기준)")
                                 )
                 ))
                 .header("X-Device-Id", headerIdentifier)
@@ -531,7 +532,7 @@ class MemberControllerTest extends APIBaseTest {
                                 )
                                 .requestFields(
                                         fieldWithPath("notificationTime").type(JsonFieldType.STRING)
-                                                .description("알림 시간 (HH:mm:ss)")
+                                                .description("알림 시간 (HH:mm:ss, UTC 기준)")
                                 )
                 ))
                 .contentType(MediaType.APPLICATION_JSON_VALUE)

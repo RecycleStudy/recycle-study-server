@@ -21,11 +21,19 @@ spring:
   flyway:
     enabled: true
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
   jpa:
     hibernate:
       ddl-auto: validate
-
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
 
 
 server:

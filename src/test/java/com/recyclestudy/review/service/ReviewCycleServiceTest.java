@@ -17,7 +17,9 @@ import com.recyclestudy.review.service.input.ReviewSendInput;
 import com.recyclestudy.review.service.output.NextReviewOutput;
 import com.recyclestudy.review.service.output.ReviewSendOutput;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -200,7 +202,7 @@ class ReviewCycleServiceTest {
 
         // then
         assertSoftly(softly -> {
-            softly.assertThat(result.scheduledAt()).isEqualTo(t1);
+            softly.assertThat(result.scheduledAt()).isEqualTo(t1.toInstant(ZoneOffset.UTC));
             softly.assertThat(result.count()).isEqualTo(1);
         });
     }
@@ -231,7 +233,7 @@ class ReviewCycleServiceTest {
 
         // then
         assertSoftly(softly -> {
-            softly.assertThat(result.scheduledAt()).isEqualTo(t1);
+            softly.assertThat(result.scheduledAt()).isEqualTo(t1.toInstant(ZoneOffset.UTC));
             softly.assertThat(result.count()).isEqualTo(3);
         });
     }
