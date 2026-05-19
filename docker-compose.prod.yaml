@@ -9,6 +9,10 @@ services:
       - .env
     volumes:
       - /app/log:/app/log
+    deploy:
+      resources:
+        limits:
+          memory: 600m
     networks:
       - observability
 
@@ -30,6 +34,10 @@ services:
     ports:
       - "12345:12345" # Alloy UI
       - "4317:4317"   # OTLP gRPC
+    deploy:
+      resources:
+        limits:
+          memory: 150m
     networks:
       - observability
 
@@ -37,6 +45,10 @@ services:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node-exporter
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 30m
     networks:
       - observability
 

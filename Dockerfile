@@ -13,4 +13,4 @@ USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Duser.timezone=UTC", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Duser.timezone=UTC", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=60.0", "-XX:InitialRAMPercentage=60.0", "-XX:MaxMetaspaceSize=150m", "-XX:+ExitOnOutOfMemoryError", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/app/log/heapdump.hprof", "-jar", "app.jar"]
