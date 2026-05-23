@@ -1,4 +1,4 @@
-name: Claude PR Comment Response
+name: Claude Issue & PR Comment Response
 
 on:
   issue_comment:
@@ -6,11 +6,18 @@ on:
   pull_request_review_comment:
     types: [ created ]
 
+concurrency:
+  group: claude-comment-${{ github.event.issue.number }}-${{ github.event.comment.id }}
+  cancel-in-progress: false
+
 jobs:
   respond:
     if: |
       github.event.comment.user.login != 'github-actions[bot]' &&
-      contains(github.event.comment.body, '@claude')
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
     permissions:
       contents: read
