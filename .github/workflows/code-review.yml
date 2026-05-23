@@ -1,7 +1,13 @@
 name: "Claude Code Review"
+
 on:
   pull_request:
     types: [ opened, reopened, synchronize ]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
@@ -48,6 +54,9 @@ jobs:
                           author {
                             login
                           }
+                          reactions {
+                            totalCount
+                          }
                         }
                       }
                     }
@@ -55,7 +64,7 @@ jobs:
                 }
               }
             }' \
-            --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | select([.comments.nodes[].author.login] | all(. == "github-actions")) | .comments.nodes[].databaseId' \
+            --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | select([.comments.nodes[].author.login] | all(. == "github-actions")) | select([.comments.nodes[].reactions.totalCount] | add == 0) | .comments.nodes[].databaseId' \
             | while read comment_id; do
                 if [ -n "$comment_id" ]; then
                   echo "🗑️  인라인 코멘트 삭제: $comment_id"
