@@ -32,8 +32,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewCycleServiceTest {
@@ -251,5 +254,62 @@ class ReviewCycleServiceTest {
         // then
         assertThatThrownBy(() -> reviewCycleService.findNextReview(input))
                 .isInstanceOf(UnauthorizedException.class);
+    }
+
+    @Test
+    @DisplayName("빈 리스트 전달 시 아무것도 수행하지 않는다")
+    void updateStatus_emptyList_doesNothing() {
+        // when
+        reviewCycleService.updateStatus(List.of(), NotificationStatus.SENT);
+
+        // then
+        verifyNoInteractions(reviewCycleRepository);
+    }
+
+    @Test
+    @DisplayName("SENT 상태로 업데이트한다")
+    void updateStatus_sent() {
+        // given
+        final List<Long> ids = List.of(1L, 2L);
+        given(reviewCycleRepository.updateStatus(eq(ids), eq(NotificationStatus.SENT), any(LocalDateTime.class)))
+                .willReturn(2);
+
+        // when
+        reviewCycleService.updateStatus(ids, NotificationStatus.SENT);
+
+        // then
+        verify(reviewCycleRepository).updateStatus(eq(ids), eq(NotificationStatus.SENT), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("FAILED 상태로 업데이트하면 failCount 증가 쿼리를 호출한다")
+    void updateStatus_failed() {
+        // given
+        final List<Long> ids = List.of(1L, 2L);
+        given(reviewCycleRepository.updateStatusAndIncrementFailCount(
+                eq(ids), eq(NotificationStatus.FAILED), any(LocalDateTime.class)))
+                .willReturn(2);
+
+        // when
+        reviewCycleService.updateStatus(ids, NotificationStatus.FAILED);
+
+        // then
+        verify(reviewCycleRepository).updateStatusAndIncrementFailCount(
+                eq(ids), eq(NotificationStatus.FAILED), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("업데이트 건수가 요청 건수와 다르면 warn 로그를 남기고 정상 종료된다")
+    void updateStatus_mismatch_logsWarn() {
+        // given
+        final List<Long> ids = List.of(1L, 2L);
+        given(reviewCycleRepository.updateStatus(eq(ids), eq(NotificationStatus.SENT), any(LocalDateTime.class)))
+                .willReturn(1);
+
+        // when (예외 없이 정상 종료되어야 함)
+        reviewCycleService.updateStatus(ids, NotificationStatus.SENT);
+
+        // then
+        verify(reviewCycleRepository).updateStatus(eq(ids), eq(NotificationStatus.SENT), any(LocalDateTime.class));
     }
 }
