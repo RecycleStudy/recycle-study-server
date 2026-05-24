@@ -3,7 +3,7 @@ package com.recyclestudy.email;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewURL;
-import com.recyclestudy.review.service.NotificationHistoryService;
+import com.recyclestudy.review.service.ReviewCycleService;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class SingleReviewEmailSender {
 
     private final EmailSender emailSender;
     private final TemplateEngine templateEngine;
-    private final NotificationHistoryService notificationHistoryService;
+    private final ReviewCycleService reviewCycleService;
 
     @Async
     public void sendOne(final ReviewSendElement element) {
@@ -30,10 +30,10 @@ public class SingleReviewEmailSender {
         final boolean success = sendToTargetEmail(targetEmail, message);
 
         if (success) {
-            notificationHistoryService.updateStatus(element.reviewCycleIds(), NotificationStatus.SENT);
+            reviewCycleService.updateStatus(element.reviewCycleIds(), NotificationStatus.SENT);
             return;
         }
-        notificationHistoryService.updateStatus(element.reviewCycleIds(), NotificationStatus.FAILED);
+        reviewCycleService.updateStatus(element.reviewCycleIds(), NotificationStatus.FAILED);
     }
 
     private boolean sendToTargetEmail(final Email targetEmail, final String message) {
