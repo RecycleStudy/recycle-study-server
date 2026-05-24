@@ -39,6 +39,7 @@ public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> 
     @Query("""
             SELECT rc FROM ReviewCycle rc
             JOIN FETCH rc.review r
+            JOIN FETCH r.member
             WHERE r.member.id = :memberId
             AND rc.status = :status
             ORDER BY rc.scheduledAt ASC
@@ -48,7 +49,7 @@ public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> 
             @Param("status") NotificationStatus status
     );
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE ReviewCycle rc
             SET rc.status = :status, rc.lastAttemptedAt = :now
@@ -60,7 +61,7 @@ public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> 
             @Param("now") LocalDateTime now
     );
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE ReviewCycle rc
             SET rc.status = :status, rc.failCount = rc.failCount + 1, rc.lastAttemptedAt = :now
