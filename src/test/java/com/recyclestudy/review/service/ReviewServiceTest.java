@@ -11,12 +11,10 @@ import com.recyclestudy.member.domain.DeviceIdentifier;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
 import com.recyclestudy.member.repository.MemberRepository;
-import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.Review;
 import com.recyclestudy.review.domain.ReviewCycle;
 import com.recyclestudy.review.domain.ReviewURL;
-import com.recyclestudy.review.repository.NotificationHistoryRepository;
 import com.recyclestudy.review.repository.ReviewCycleRepository;
 import com.recyclestudy.review.repository.ReviewRepository;
 import com.recyclestudy.review.service.input.ReviewSaveInput;
@@ -66,9 +64,6 @@ class ReviewServiceTest {
     @Mock
     CycleSelectionResolverRegistry cycleSelectionResolverRegistry;
 
-    @Mock
-    NotificationHistoryRepository notificationHistoryRepository;
-
     @Spy
     Clock clock = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneId.of("UTC"));
 
@@ -94,28 +89,26 @@ class ReviewServiceTest {
         final Email email = Email.from("test@test.com");
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from(urlValue));
-        final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
 
         final List<Duration> durations = List.of(Duration.ofDays(1));
 
         given(memberRepository.findByIdentifier(any(DeviceIdentifier.class))).willReturn(Optional.of(member));
         given(cycleSelectionResolverRegistry.resolve(cycleSelection)).willReturn(durations);
         given(reviewRepository.save(any(Review.class))).willReturn(review);
-        given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
+
+        final ArgumentCaptor<List<ReviewCycle>> captor = ArgumentCaptor.forClass(List.class);
+        given(reviewCycleRepository.saveAll(captor.capture())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         final ReviewSaveOutput actual = reviewService.saveReview(input);
 
         // then
-        final ArgumentCaptor<List<NotificationHistory>> captor = ArgumentCaptor.forClass(List.class);
-        verify(notificationHistoryRepository).saveAll(captor.capture());
-
         final LocalDateTime expectedDeadline = now.plusDays(1).plusHours(24);
         assertSoftly(softAssertions -> {
             softAssertions.assertThat(actual.url()).isEqualTo(ReviewURL.from(urlValue));
             softAssertions.assertThat(actual.scheduledAts()).hasSize(1);
-            softAssertions.assertThat(captor.getValue()).allMatch(h -> h.getStatus() == NotificationStatus.PENDING);
-            softAssertions.assertThat(captor.getValue()).allMatch(h -> h.getDeadline().equals(expectedDeadline));
+            softAssertions.assertThat(captor.getValue()).allMatch(rc -> rc.getStatus() == NotificationStatus.PENDING);
+            softAssertions.assertThat(captor.getValue()).allMatch(rc -> rc.getDeadline().equals(expectedDeadline));
         });
 
         verify(memberRepository).findByIdentifier(any(DeviceIdentifier.class));
@@ -193,7 +186,6 @@ class ReviewServiceTest {
 
         final Member member = Member.withoutId(Email.from("test@test.com"));
         final Review review = Review.withoutId(member, input.url());
-        final ReviewCycle cycle = ReviewCycle.withoutId(review, now.plusDays(1));
         final CycleOption cycleOption = mock(CycleOption.class);
         final List<Duration> durations = List.of(Duration.ofDays(1));
 
@@ -202,7 +194,7 @@ class ReviewServiceTest {
         given(cycleOptionRepository.findById(cycleOptionId)).willReturn(Optional.of(cycleOption));
         given(cycleOption.isOwner(member)).willReturn(true);
         given(cycleSelectionResolverRegistry.resolve(cycleSelection)).willReturn(durations);
-        given(reviewCycleRepository.saveAll(anyList())).willReturn(List.of(cycle));
+        given(reviewCycleRepository.saveAll(anyList())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         reviewService.saveReview(input);

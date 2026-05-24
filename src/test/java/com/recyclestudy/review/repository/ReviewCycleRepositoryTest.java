@@ -3,7 +3,6 @@ package com.recyclestudy.review.repository;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.member.domain.Member;
 import com.recyclestudy.member.repository.MemberRepository;
-import com.recyclestudy.review.domain.NotificationHistory;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.Review;
 import com.recyclestudy.review.domain.ReviewCycle;
@@ -24,9 +23,6 @@ class ReviewCycleRepositoryTest {
     private ReviewCycleRepository reviewCycleRepository;
 
     @Autowired
-    private NotificationHistoryRepository notificationHistoryRepository;
-
-    @Autowired
     private MemberRepository memberRepository;
 
     @Autowired
@@ -41,10 +37,8 @@ class ReviewCycleRepositoryTest {
     @DisplayName("FAILED 상태이고 deadline이 현재보다 미래이면 재시도 대상에 포함된다")
     void findAllRetryableCycles_success() {
         // given
-        final ReviewCycle cycle = saveCycle("retry@email.com", SCHEDULED_AT);
-        notificationHistoryRepository.save(
-                NotificationHistory.withoutId(cycle, NotificationStatus.PENDING, FUTURE_DEADLINE));
-        notificationHistoryRepository.updateStatusAndIncrementFailCount(
+        final ReviewCycle cycle = saveCycle("retry@email.com", SCHEDULED_AT, FUTURE_DEADLINE);
+        reviewCycleRepository.updateStatusAndIncrementFailCount(
                 List.of(cycle.getId()), NotificationStatus.FAILED, NOW);
 
         // when
@@ -60,9 +54,7 @@ class ReviewCycleRepositoryTest {
     @DisplayName("PENDING 상태만 있는 경우는 재시도 대상이 아니다")
     void findAllRetryableCycles_pendingOnly() {
         // given
-        final ReviewCycle cycle = saveCycle("pending@email.com", SCHEDULED_AT);
-        notificationHistoryRepository.save(
-                NotificationHistory.withoutId(cycle, NotificationStatus.PENDING, FUTURE_DEADLINE));
+        saveCycle("pending@email.com", SCHEDULED_AT, FUTURE_DEADLINE);
 
         // when
         final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
@@ -76,10 +68,8 @@ class ReviewCycleRepositoryTest {
     @DisplayName("이미 SENT 상태이면 재시도 대상이 아니다")
     void findAllRetryableCycles_alreadySent() {
         // given
-        final ReviewCycle cycle = saveCycle("sent@email.com", SCHEDULED_AT);
-        notificationHistoryRepository.save(
-                NotificationHistory.withoutId(cycle, NotificationStatus.PENDING, FUTURE_DEADLINE));
-        notificationHistoryRepository.updateStatus(
+        final ReviewCycle cycle = saveCycle("sent@email.com", SCHEDULED_AT, FUTURE_DEADLINE);
+        reviewCycleRepository.updateStatus(
                 List.of(cycle.getId()), NotificationStatus.SENT, NOW);
 
         // when
@@ -94,10 +84,8 @@ class ReviewCycleRepositoryTest {
     @DisplayName("deadline이 현재보다 과거이면 재시도 대상이 아니다")
     void findAllRetryableCycles_deadlineExpired() {
         // given
-        final ReviewCycle cycle = saveCycle("expired@email.com", SCHEDULED_AT);
-        notificationHistoryRepository.save(
-                NotificationHistory.withoutId(cycle, NotificationStatus.PENDING, PAST_DEADLINE));
-        notificationHistoryRepository.updateStatusAndIncrementFailCount(
+        final ReviewCycle cycle = saveCycle("expired@email.com", SCHEDULED_AT, PAST_DEADLINE);
+        reviewCycleRepository.updateStatusAndIncrementFailCount(
                 List.of(cycle.getId()), NotificationStatus.FAILED, NOW);
 
         // when
@@ -109,10 +97,10 @@ class ReviewCycleRepositoryTest {
     }
 
     @Test
-    @DisplayName("notification_history가 없는 경우 재시도 대상이 아니다")
-    void findAllRetryableCycles_noHistory() {
+    @DisplayName("PENDING 상태인 경우 재시도 대상이 아니다")
+    void findAllRetryableCycles_pendingIsNotRetryable() {
         // given
-        saveCycle("new@email.com", SCHEDULED_AT);
+        saveCycle("new@email.com", SCHEDULED_AT, FUTURE_DEADLINE);
 
         // when
         final List<ReviewCycle> results = reviewCycleRepository.findAllRetryableCycles(
@@ -126,12 +114,9 @@ class ReviewCycleRepositoryTest {
     @DisplayName("failCount가 아무리 높아도 deadline이 미래이면 재시도 대상에 포함된다")
     void findAllRetryableCycles_failCountDoesNotAffectEligibility() {
         // given
-        final ReviewCycle cycle = saveCycle("many-fails@email.com", SCHEDULED_AT);
-        notificationHistoryRepository.save(
-                NotificationHistory.withoutId(cycle, NotificationStatus.PENDING, FUTURE_DEADLINE));
-        // failCount를 10으로 설정해도 deadline이 미래이면 재시도 대상
+        final ReviewCycle cycle = saveCycle("many-fails@email.com", SCHEDULED_AT, FUTURE_DEADLINE);
         for (int i = 0; i < 10; i++) {
-            notificationHistoryRepository.updateStatusAndIncrementFailCount(
+            reviewCycleRepository.updateStatusAndIncrementFailCount(
                     List.of(cycle.getId()), NotificationStatus.FAILED, NOW);
         }
 
@@ -143,9 +128,14 @@ class ReviewCycleRepositoryTest {
         assertThat(results).hasSize(1);
     }
 
-    private ReviewCycle saveCycle(final String email, final LocalDateTime scheduledAt) {
+    private ReviewCycle saveCycle(
+            final String email,
+            final LocalDateTime scheduledAt,
+            final LocalDateTime deadline
+    ) {
         final Member member = memberRepository.save(Member.withoutId(Email.from(email)));
         final Review review = reviewRepository.save(Review.withoutId(member, ReviewURL.from("url")));
-        return reviewCycleRepository.save(ReviewCycle.withoutId(review, scheduledAt));
+        return reviewCycleRepository.save(
+                ReviewCycle.withoutId(review, scheduledAt, NotificationStatus.PENDING, deadline));
     }
 }

@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
 class ReviewCycleTest {
 
@@ -21,11 +22,15 @@ class ReviewCycleTest {
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
         final LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        final NotificationStatus status = NotificationStatus.PENDING;
+        final LocalDateTime deadline = scheduledAt.plusHours(24);
 
         return Stream.of(
-                Arguments.of(null, scheduledAt),
-                Arguments.of(review, null),
-                Arguments.of(null, null)
+                Arguments.of(null, scheduledAt, status, deadline),
+                Arguments.of(review, null, status, deadline),
+                Arguments.of(review, scheduledAt, null, deadline),
+                Arguments.of(review, scheduledAt, status, null),
+                Arguments.of(null, null, null, null)
         );
     }
 
@@ -37,13 +42,21 @@ class ReviewCycleTest {
         final Member member = Member.withoutId(email);
         final Review review = Review.withoutId(member, ReviewURL.from("https://test.com"));
         final LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        final NotificationStatus status = NotificationStatus.PENDING;
+        final LocalDateTime deadline = scheduledAt.plusHours(24);
 
         // when
-        final ReviewCycle actual = ReviewCycle.withoutId(review, scheduledAt);
+        final ReviewCycle actual = ReviewCycle.withoutId(review, scheduledAt, status, deadline);
 
         // then
-        assertThat(actual.getReview()).isEqualTo(review);
-        assertThat(actual.getScheduledAt()).isEqualTo(scheduledAt);
+        assertSoftly(softly -> {
+            softly.assertThat(actual.getReview()).isEqualTo(review);
+            softly.assertThat(actual.getScheduledAt()).isEqualTo(scheduledAt);
+            softly.assertThat(actual.getStatus()).isEqualTo(status);
+            softly.assertThat(actual.getDeadline()).isEqualTo(deadline);
+            softly.assertThat(actual.getFailCount()).isEqualTo(0);
+            softly.assertThat(actual.getLastAttemptedAt()).isNull();
+        });
     }
 
     @ParameterizedTest
@@ -51,12 +64,14 @@ class ReviewCycleTest {
     @DisplayName("null로 생성 시도 시, 예외를 던진다")
     void throwExceptionWhenNull(
             final Review review,
-            final LocalDateTime scheduledAt
+            final LocalDateTime scheduledAt,
+            final NotificationStatus status,
+            final LocalDateTime deadline
     ) {
         // given
         // when
         // then
-        assertThatThrownBy(() -> ReviewCycle.withoutId(review, scheduledAt))
+        assertThatThrownBy(() -> ReviewCycle.withoutId(review, scheduledAt, status, deadline))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }
