@@ -3,7 +3,7 @@ package com.recyclestudy.email;
 import com.recyclestudy.member.domain.Email;
 import com.recyclestudy.review.domain.NotificationStatus;
 import com.recyclestudy.review.domain.ReviewURL;
-import com.recyclestudy.review.service.NotificationHistoryService;
+import com.recyclestudy.review.service.ReviewCycleService;
 import com.recyclestudy.review.service.output.ReviewSendOutput.ReviewSendElement;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +34,7 @@ class SingleReviewEmailSenderTest {
     private TemplateEngine templateEngine;
 
     @Mock
-    private NotificationHistoryService notificationHistoryService;
+    private ReviewCycleService reviewCycleService;
 
     @InjectMocks
     private SingleReviewEmailSender singleReviewEmailSender;
@@ -55,7 +55,7 @@ class SingleReviewEmailSenderTest {
 
         // then
         verify(emailSender).send(eq(email), eq("[Recycle Study] 오늘의 복습 목록이 도착했습니다"), any());
-        verify(notificationHistoryService).updateStatus(ids, NotificationStatus.SENT);
+        verify(reviewCycleService).updateStatus(ids, NotificationStatus.SENT);
     }
 
     @Test
@@ -73,7 +73,7 @@ class SingleReviewEmailSenderTest {
         singleReviewEmailSender.sendOne(element);
 
         // then
-        verify(notificationHistoryService).updateStatus(ids, NotificationStatus.FAILED);
+        verify(reviewCycleService).updateStatus(ids, NotificationStatus.FAILED);
     }
 
     @Test

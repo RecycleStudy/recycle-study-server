@@ -4,6 +4,8 @@ import com.recyclestudy.common.BaseEntity;
 import com.recyclestudy.common.NullValidator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -30,15 +32,40 @@ public class ReviewCycle extends BaseEntity {
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;
 
-    public static ReviewCycle withoutId(final Review review, final LocalDateTime scheduledAt) {
-        validateNotNull(review, scheduledAt);
-        return new ReviewCycle(review, scheduledAt);
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private NotificationStatus status;
+
+    @Column(name = "fail_count", nullable = false)
+    private int failCount;
+
+    @Column(name = "last_attempted_at")
+    private LocalDateTime lastAttemptedAt;
+
+    @Column(name = "deadline", nullable = false)
+    private LocalDateTime deadline;
+
+    public static ReviewCycle withoutId(
+            final Review review,
+            final LocalDateTime scheduledAt,
+            final NotificationStatus status,
+            final LocalDateTime deadline
+    ) {
+        validateNotNull(review, scheduledAt, status, deadline);
+        return new ReviewCycle(review, scheduledAt, status, 0, null, deadline);
     }
 
-    private static void validateNotNull(final Review review, final LocalDateTime scheduledAt) {
+    private static void validateNotNull(
+            final Review review,
+            final LocalDateTime scheduledAt,
+            final NotificationStatus status,
+            final LocalDateTime deadline
+    ) {
         NullValidator.builder()
                 .add(Fields.review, review)
                 .add(Fields.scheduledAt, scheduledAt)
+                .add(Fields.status, status)
+                .add(Fields.deadline, deadline)
                 .validate();
     }
 }
